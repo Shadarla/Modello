@@ -4,5 +4,8 @@ using namespace std;
 
 int main() {
     std::cout << "Hello World!";
+
+    cout << "Modifica per sync" << endl;
+
     return 0;
 }
