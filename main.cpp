@@ -6,7 +6,7 @@ using namespace std;
 #include <tuple>
 
 
-double state_probability (vector<int> pos_feed, vector<int> tot_feed, vector<int> act_res, int i, int j, int k);
+double state_probability (int i, int j, int k);
 
 const int Number_of_nodes = 150;
 const int lambda = 2;
@@ -20,41 +20,36 @@ map<tuple<int, int, int>, int> mapOfTuple;
 
 int main() {
    
-    stato = make_tuple(18, 20, 0);
+    int i = 18;
+    int j = 20;
+    int k = 0;
+    stato = make_tuple(i, j, k);
     
-    vector<int> positive_feedback, total_feedback, actual_resources;
-    vector<double> Delta;
-    double P = 0;
+    double P = 1;
     mapOfTuple[stato] = P;
 
-    int i = 20;
-    int j = 20;
-    int k = 2;
-    stato = make_tuple(18, 21, 0);
-    mapOfTuple[stato] = 3;
-    stato = make_tuple(18, 20, 2);
-    mapOfTuple[stato] = 4;
-    stato = make_tuple(19, 22, 1);
-    mapOfTuple[stato] = 1;
-    int estract = mapOfTuple[make_tuple(i,j,k)];
+  //esempi
+  //  stato = make_tuple(18, 21, 0);
+   // mapOfTuple[stato] = 3;
+ //    int estract = mapOfTuple[make_tuple(i,j,k)];
 
-    positive_feedback.push_back(18);
-    total_feedback.push_back(20);
-    actual_resources.push_back(0);
 
-    //indici temporanei poi li sostituisco con i for
+    //la prima prob è uno, quindi inizio a calcolare dalla seconda
+    k++;
+    stato = make_tuple(i, j, k);
+    mapOfTuple[stato] = P;
+    k++;
 
     for (j; j < max_passo; j++) {
         for (i; i <= j; i++) {
             for (k; k <= max_allocab_resources; k++) {
-                P = state_probability(positive_feedback, total_feedback, actual_resources, i, j, k);
-                cout << "Il valore di Probabilita' di stato al passo " << j << "e': " << P << endl;
-                //actual_resources.push_back(k+1);
-
+                stato = make_tuple(i, j, k);
+                P = state_probability(i, j, k);
+                mapOfTuple[stato] = P;
+                //cout << "Il valore di Probabilita' di stato al passo " << j << "e': " << P << endl;
+             
             }
-            //positive_feedback.push_back(i);
         }
-        //total_feedback.push_back(j);
     }
    
     //struct o map per lo stato da restituire alla funzione
