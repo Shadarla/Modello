@@ -7,27 +7,29 @@ using namespace std;
 
 
 double state_probability (int i, int j, int k);
+double calcolo_lambda_j();
 
+int i = 18;
+int j = 20;
+int k = 0;
 const int Number_of_nodes = 150;
-const int lambda = 2;
+const double lambda = 2;
 const int mu_j = 1;
 const bool type_of_node = 0; //0 per benevolo, 1 per malevolo
 const int max_allocab_resources = 3;
-const int max_passo = 7; //esiste una formuletta per calcolarlo
+const int max_passo = j+7; //esiste una formuletta per calcolarlo
 
 tuple <int, int, int> stato;
-map<tuple<int, int, int>, int> mapOfTuple;
+map<tuple<int, int, int>, double> mapOfTuple;
 
 int main() {
    
-    int i = 18;
-    int j = 20;
-    int k = 0;
+  
     stato = make_tuple(i, j, k);
     
     double P = 1;
     mapOfTuple[stato] = P;
-
+    cout << "Stato: (" << i << "," << j << "," << k << ") Il valore di Probabilita' di stato è: " << P << endl;
   //esempi
   //  stato = make_tuple(18, 21, 0);
    // mapOfTuple[stato] = 3;
@@ -36,34 +38,36 @@ int main() {
 
     //la prima prob è uno, quindi inizio a calcolare dalla seconda
     k++;
-    stato = make_tuple(i, j, k);
-    mapOfTuple[stato] = P;
-    k++;
+ //   stato = make_tuple(i, j, k);
+ //   mapOfTuple[stato] = P;
+ //   k++;
 
-    for (j; j < max_passo; j++) {
-        for (i; i <= j; i++) {
-            for (k; k <= max_allocab_resources; k++) {
+    for (j=20; j <= max_passo; j++) {
+        for (i=18; i <= j-2; i++) {
+            for (k=0; k <= max_allocab_resources; k++) {
+                if (j == 20 && i == 18 && k == 0)
+                    continue;
+                cout  <<"Stato: (" << i << "," << j << "," << k << ") ";
                 stato = make_tuple(i, j, k);
                 P = state_probability(i, j, k);
                 mapOfTuple[stato] = P;
-                //cout << "Il valore di Probabilita' di stato al passo " << j << "e': " << P << endl;
+                cout << "Il valore di Probabilita' di stato è: " << P << endl;
              
             }
         }
     }
-   
-    //struct o map per lo stato da restituire alla funzione
+  
 
     return 0;
 }
 
-double state_probability(vector<int> pos_feed, vector<int> tot_feed, vector<int> act_res, int i, int j, int k) {
+double state_probability(int i, int j, int k) {
    
     double probabilita = 0;
     double probabilita_feedback_positivo = 0;
     double probabilita_feedback_negativo = 0;
-    int lambda_j = 2;
-
+    double lambda_j = calcolo_lambda_j();
+   
     if (type_of_node == 0) {
         probabilita_feedback_positivo = 0.9;
     }
@@ -78,6 +82,35 @@ double state_probability(vector<int> pos_feed, vector<int> tot_feed, vector<int>
 
     //controllo sullo stato attraverso map
 
-    probabilita = 0.5 * lambda_j / (lambda_j + (act_res[k-1] * mu_j)) + 0.5 * (act_res[k] * mu_j * probabilita_feedback_negativo) / (lambda_j + (act_res[k] * mu_j)) + 0.5 * (act_res[k] * mu_j * probabilita_feedback_positivo) / (lambda_j + (act_res[k] * mu_j));
+    double prob_prima_parte = 0;
+    if (k - 1 >= 0){
+        prob_prima_parte = mapOfTuple[make_tuple(i, j, k - 1)] * lambda_j / (lambda_j + (k - 1) * mu_j);
+    }
+    else{
+        prob_prima_parte = 0;
+    }
+        
+    double prob_seconda_parte = mapOfTuple[make_tuple(i, j-1, k+1)] * ((k + 1) * mu_j * probabilita_feedback_negativo) / (lambda_j + (k + 1) * mu_j);
+    double prob_terza_parte = mapOfTuple[make_tuple(i-1, j-1, k+1)] * ((k + 1) * mu_j * probabilita_feedback_positivo) / (lambda_j + (k + 1) * mu_j);
+
+    probabilita = prob_prima_parte + prob_seconda_parte + prob_terza_parte;
     return probabilita;
+}
+ 
+
+double calcolo_lambda_j() {
+    double lambda_provider = 1;
+    double prob_richiesta_assegnata_a_j = 1;
+    double prob_soprasoglia = 1;
+    double prob_j_piu_trusted = 1;
+    double prob_j_non_piu_trusted_ma_risorse = 1;
+
+   //prob_soprasoglia = ;
+   // prob_j_piu_trusted = 1;
+   // prob_j_non_piu_trusted_ma_risorse = 1;
+
+    prob_richiesta_assegnata_a_j = prob_soprasoglia * prob_j_piu_trusted * prob_j_non_piu_trusted_ma_risorse ;
+    lambda_provider = (lambda / Number_of_nodes)* prob_richiesta_assegnata_a_j;
+
+    return lambda_provider;
 }
