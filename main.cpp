@@ -17,15 +17,15 @@ int i = 18;
 int j = 20;
 int k = 0;
 const int Number_of_nodes = 150;
-const double lambda = 2;
+const double lambda = 1000;
 const int num_classi_di_servizio = 3;
 const int mu_j = 1;
 const bool type_of_node = 0; //0 per benevolo, 1 per malevolo
 const int max_allocab_resources = 2;
 const int max_passo = j+7; //esiste una formuletta per calcolarlo
-const int num_amici = 15; // supposto uguale per tutti
+const int num_amici = 9; // supposto uguale per tutti
 
-vector<int> mu;
+vector<double> mu;
 vector<int> num_amici_per_classe;
 vector<double> array_prob_blocco_per_classe;
 vector<double> Lambda;
@@ -136,30 +136,47 @@ double loss_probability() {
     int s = 0;
 
     //assegno i valori dei tempi di servizio
+    cout << endl << "Stampo valori di mu: " << endl;
     for (s = 0; s < num_classi_di_servizio; s++) {
-        mu.push_back(num_classi_di_servizio - s);
-        //cout << mu[s] << endl;
+        if (s == 0) {
+            mu.push_back(s + 1);
+        }
+        if (s == 1) {
+            mu.push_back(0.5);
+        }
+        if (s >= 2) {
+            mu.push_back(0.02);
+        }
+        cout << " mu[" << s+1 << "] = " << mu[s] << endl;
     }
 
     //assegno il numero di amici per ogni classe di servizio
+    cout << endl << "Stampo generazione di numero di amici per classe: " << endl;
     for (s = 0; s < num_classi_di_servizio; s++) {
         num_amici_per_classe.push_back(num_amici/ num_classi_di_servizio);
-        //cout << num_amici_per_classe[s] << endl;
+        cout << " per classe[" << s+1 << "]: " << num_amici_per_classe[s] << endl;
     }
 
     Lambda.push_back(lambda / num_amici_per_classe[0]);
 
-    
-    for (s = 0; s < num_classi_di_servizio; s++) {
+
+    cout << endl << "Probabilità di blocco per servente " << endl;
+    array_prob_blocco_per_classe.push_back(prob_blocco(0));
+    cout << " di classe[1]: " << array_prob_blocco_per_classe[0] << endl;
+    for (s = 1; s < num_classi_di_servizio; s++) {
+        Lambda.push_back((lambda * array_prob_blocco_per_classe[s-1]) / num_amici_per_classe[s]);
         array_prob_blocco_per_classe.push_back(prob_blocco(s));
-        Lambda.push_back((lambda * array_prob_blocco_per_classe[s]) / num_amici_per_classe[s + 1]);
-        //cout << array_prob_blocco_per_classe[s] << endl;
+        cout << " di classe[" << s+1 << "]: " << array_prob_blocco_per_classe[s] << endl;
     }
     
     for (s = 0; s < array_prob_blocco_per_classe.size(); s++) {
         prob_perdita = array_prob_blocco_per_classe[s];
     }
+
+    cout << endl << "Probabilita' di perdita del sistema "<< prob_perdita << endl;
+   
     traffico_perso = lambda * prob_perdita;
+    cout << endl << "traffico perso dal sistema " << traffico_perso << endl;
     return prob_perdita;
 }
 
