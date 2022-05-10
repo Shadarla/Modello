@@ -19,11 +19,11 @@ int k = 0;
 const int Number_of_nodes = 150;
 const double lambda = 20;
 const int num_classi_di_servizio = 2;
-const int mu_j = 1; //verifica
+const int mu_j = 1.4; //verifica
 const bool type_of_node = 0; //0 per benevolo, 1 per malevolo
 const int max_allocab_resources = 2;
 const int max_passo = j+7; //esiste una formuletta per calcolarlo
-const int num_amici = 7; // supposto uguale per tutti
+const int num_amici = 14; // supposto uguale per tutti
 
 vector<double> mu;
 vector<int> num_amici_per_classe;
@@ -131,7 +131,7 @@ double calcolo_lambda_j() {
 
 double loss_probability() {
 
-    double prob_perdita = 0;
+    double prob_perdita = 1;
     double traffico_perso = 0;
     int s = 0;
 
@@ -139,13 +139,13 @@ double loss_probability() {
     cout << endl << "Stampo valori di mu: " << endl;
     for (s = 0; s < num_classi_di_servizio; s++) {
         if (s == 0) {
-            mu.push_back(s + 1);
+            mu.push_back(1.4);
         }
         if (s == 1) {
-            mu.push_back(0.5);
+            mu.push_back(0.7);
         }
         if (s >= 2) {
-            mu.push_back(0.02);
+            mu.push_back(0.025);
         }
         cout << " mu[" << s+1 << "] = " << mu[s] << endl;
     }
@@ -153,7 +153,7 @@ double loss_probability() {
     //assegno il numero di amici per ogni classe di servizio
 
     cout << endl << "Il numero totale di amici per object e': " << num_amici << endl << "Numero di amici per classe: " << endl;
-    double proporz_classe1 = 2;
+    double proporz_classe1 = 4;
     double proporz_classe2 = 3;
     double proporz_classe3 = 0;
     double totale_proporzione = proporz_classe1 + proporz_classe2 + proporz_classe3;
@@ -172,16 +172,18 @@ double loss_probability() {
 
 
     cout << endl << "Probabilita' di blocco per servente " << endl;
-    array_prob_blocco_per_classe.push_back(prob_blocco(0));
-    cout << " di classe[1]: " << array_prob_blocco_per_classe[0] << endl;
-    for (s = 1; s < num_classi_di_servizio; s++) {
-        Lambda.push_back((lambda * array_prob_blocco_per_classe[s-1]) / num_amici_per_classe[s]);
+   // array_prob_blocco_per_classe.push_back(prob_blocco(0));
+    //cout << " di classe[1]: " << array_prob_blocco_per_classe[0] << endl;
+    for (s = 0; s < num_classi_di_servizio; s++) {
         array_prob_blocco_per_classe.push_back(prob_blocco(s));
-        cout << " di classe[" << s+1 << "]: " << array_prob_blocco_per_classe[s] << endl;
+        cout << " di classe[" << s << "]: " << array_prob_blocco_per_classe[s] << endl;
+        if (s < num_classi_di_servizio - 1)
+            Lambda.push_back((lambda * array_prob_blocco_per_classe[s]) / num_amici_per_classe[s+1]);       
     }
     
+    
     for (s = 0; s < array_prob_blocco_per_classe.size(); s++) {
-        prob_perdita = array_prob_blocco_per_classe[s];
+        prob_perdita = prob_perdita * array_prob_blocco_per_classe[s];
     }
 
     cout << endl << "Probabilita' di perdita del sistema "<< prob_perdita << endl;
@@ -198,10 +200,10 @@ double prob_blocco(int index) {
     int sum_index = 0;
     double risultato_sommatoria = 0;
 
-    P_B_prima_parte = pow((Lambda[index]/mu[index]),(num_amici_per_classe[index]));
-    P_B_seconda_parte = 1/factorial(num_amici_per_classe[index]);
+    P_B_prima_parte = pow((Lambda[index]/mu[index]),(num_classi_di_servizio-index));
+    P_B_seconda_parte = 1/factorial(num_classi_di_servizio - index);
     
-    for (i = 0; i <= num_amici_per_classe[index]; i++) {
+    for (i = 0; i <= (num_classi_di_servizio - index); i++) {
         risultato_sommatoria = risultato_sommatoria + pow((Lambda[index] / mu[index]), i);
     }
     P_B_terza_parte = 1/(risultato_sommatoria*(1/factorial(sum_index)));
