@@ -17,13 +17,13 @@ int i = 18;
 int j = 20;
 int k = 0;
 const int Number_of_nodes = 150;
-const double lambda = 1000;
-const int num_classi_di_servizio = 3;
-const int mu_j = 1;
+const double lambda = 20;
+const int num_classi_di_servizio = 2;
+const int mu_j = 1; //verifica
 const bool type_of_node = 0; //0 per benevolo, 1 per malevolo
 const int max_allocab_resources = 2;
 const int max_passo = j+7; //esiste una formuletta per calcolarlo
-const int num_amici = 9; // supposto uguale per tutti
+const int num_amici = 7; // supposto uguale per tutti
 
 vector<double> mu;
 vector<int> num_amici_per_classe;
@@ -151,16 +151,27 @@ double loss_probability() {
     }
 
     //assegno il numero di amici per ogni classe di servizio
-    cout << endl << "Stampo generazione di numero di amici per classe: " << endl;
+
+    cout << endl << "Il numero totale di amici per object e': " << num_amici << endl << "Numero di amici per classe: " << endl;
+    double proporz_classe1 = 2;
+    double proporz_classe2 = 3;
+    double proporz_classe3 = 0;
+    double totale_proporzione = proporz_classe1 + proporz_classe2 + proporz_classe3;
     for (s = 0; s < num_classi_di_servizio; s++) {
-        num_amici_per_classe.push_back(num_amici/ num_classi_di_servizio);
+        if (s == 0)
+            num_amici_per_classe.push_back(round(num_amici * proporz_classe1/ totale_proporzione));
+        if (s == 1)
+            num_amici_per_classe.push_back(round(num_amici * proporz_classe2/ totale_proporzione));
+        if (s == 2)
+            num_amici_per_classe.push_back(round(num_amici * proporz_classe3/ totale_proporzione));
+       //num_amici_per_classe.push_back(num_amici/ num_classi_di_servizio);
         cout << " per classe[" << s+1 << "]: " << num_amici_per_classe[s] << endl;
     }
 
     Lambda.push_back(lambda / num_amici_per_classe[0]);
 
 
-    cout << endl << "Probabilità di blocco per servente " << endl;
+    cout << endl << "Probabilita' di blocco per servente " << endl;
     array_prob_blocco_per_classe.push_back(prob_blocco(0));
     cout << " di classe[1]: " << array_prob_blocco_per_classe[0] << endl;
     for (s = 1; s < num_classi_di_servizio; s++) {
