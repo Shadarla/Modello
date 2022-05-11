@@ -23,10 +23,10 @@ const int mu_j = 1.4; //verifica
 const bool type_of_node = 0; //0 per benevolo, 1 per malevolo
 const int max_allocab_resources = 2;
 const int max_passo = j+7; //esiste una formuletta per calcolarlo
-const int num_amici = 14; // supposto uguale per tutti
+const int num_amici = 13; // supposto uguale per tutti
 
 vector<double> mu;
-vector<int> num_amici_per_classe;
+vector<double> num_amici_per_classe;
 vector<double> array_prob_blocco_per_classe;
 vector<double> Lambda;
 
@@ -153,17 +153,23 @@ double loss_probability() {
     //assegno il numero di amici per ogni classe di servizio
 
     cout << endl << "Il numero totale di amici per object e': " << num_amici << endl << "Numero di amici per classe: " << endl;
-    double proporz_classe1 = 4;
-    double proporz_classe2 = 3;
+    double proporz_classe1 = 7.5;
+    double proporz_classe2 = 5.5;
     double proporz_classe3 = 0;
     double totale_proporzione = proporz_classe1 + proporz_classe2 + proporz_classe3;
     for (s = 0; s < num_classi_di_servizio; s++) {
-        if (s == 0)
-            num_amici_per_classe.push_back(round(num_amici * proporz_classe1/ totale_proporzione));
-        if (s == 1)
-            num_amici_per_classe.push_back(round(num_amici * proporz_classe2/ totale_proporzione));
-        if (s == 2)
-            num_amici_per_classe.push_back(round(num_amici * proporz_classe3/ totale_proporzione));
+        if (s == 0) {
+            //num_amici_per_classe.push_back(round(num_amici * proporz_classe1 / totale_proporzione));
+            num_amici_per_classe.push_back(num_amici * proporz_classe1 / totale_proporzione);
+        }
+        if (s == 1) {
+            //num_amici_per_classe.push_back(round(num_amici * proporz_classe2 / totale_proporzione));
+            num_amici_per_classe.push_back(num_amici * proporz_classe2 / totale_proporzione);
+        }
+        if (s == 2) {
+           // num_amici_per_classe.push_back(round(num_amici * proporz_classe3 / totale_proporzione));
+            num_amici_per_classe.push_back(num_amici * proporz_classe3 / totale_proporzione);
+        }
        //num_amici_per_classe.push_back(num_amici/ num_classi_di_servizio);
         cout << " per classe[" << s+1 << "]: " << num_amici_per_classe[s] << endl;
     }
@@ -200,10 +206,10 @@ double prob_blocco(int index) {
     int sum_index = 0;
     double risultato_sommatoria = 0;
 
-    P_B_prima_parte = pow((Lambda[index]/mu[index]),(num_classi_di_servizio-index));
-    P_B_seconda_parte = 1/factorial(num_classi_di_servizio - index);
+    P_B_prima_parte = pow((Lambda[index]/mu[index]),(max_allocab_resources));
+    P_B_seconda_parte = 1/factorial(max_allocab_resources);
     
-    for (i = 0; i <= (num_classi_di_servizio - index); i++) {
+    for (i = 0; i <= (max_allocab_resources); i++) {
         risultato_sommatoria = risultato_sommatoria + pow((Lambda[index] / mu[index]), i);
     }
     P_B_terza_parte = 1/(risultato_sommatoria*(1/factorial(sum_index)));
