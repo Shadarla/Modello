@@ -17,7 +17,7 @@ int i = 18;
 int j = 20;
 int k = 0;
 const int Number_of_nodes = 150;
-const double lambda = 20;
+const double lambda = 50;
 const int num_classi_di_servizio = 2;
 const int mu_j = 1.4; //verifica
 const bool type_of_node = 0; //0 per benevolo, 1 per malevolo
@@ -182,7 +182,7 @@ double loss_probability() {
     //cout << " di classe[1]: " << array_prob_blocco_per_classe[0] << endl;
     for (s = 0; s < num_classi_di_servizio; s++) {
         array_prob_blocco_per_classe.push_back(prob_blocco(s));
-        cout << " di classe[" << s << "]: " << array_prob_blocco_per_classe[s] << endl;
+        cout << " di classe[" << s+1 << "]: " << array_prob_blocco_per_classe[s] << endl;
         if (s < num_classi_di_servizio - 1)
             Lambda.push_back((lambda * array_prob_blocco_per_classe[s]) / num_amici_per_classe[s+1]);       
     }
@@ -200,19 +200,20 @@ double loss_probability() {
 }
 
 double prob_blocco(int index) {
-    double P_B_prima_parte = 0;
-    double P_B_seconda_parte = 0;
-    double P_B_terza_parte = 0;
-    int sum_index = 0;
+    double P_B_prima_parte = 1;
+    double P_B_seconda_parte = 1;
+    double P_B_terza_parte = 1;
+    double sommatoria = 0;
     double risultato_sommatoria = 0;
 
     P_B_prima_parte = pow((Lambda[index]/mu[index]),(max_allocab_resources));
     P_B_seconda_parte = 1/factorial(max_allocab_resources);
     
     for (i = 0; i <= (max_allocab_resources); i++) {
-        risultato_sommatoria = risultato_sommatoria + pow((Lambda[index] / mu[index]), i);
+        sommatoria = pow((Lambda[index] / mu[index]), i) * (1 / factorial(i));
+        risultato_sommatoria = risultato_sommatoria + sommatoria;
     }
-    P_B_terza_parte = 1/(risultato_sommatoria*(1/factorial(sum_index)));
+    P_B_terza_parte = 1/risultato_sommatoria;
 
     double P_B = P_B_prima_parte * P_B_seconda_parte * P_B_terza_parte;
 
