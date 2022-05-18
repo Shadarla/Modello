@@ -153,8 +153,8 @@ double loss_probability() {
     //assegno il numero di amici per ogni classe di servizio
 
     cout << endl << "Il numero totale di amici per object e': " << num_amici << endl << "Numero di amici per classe: " << endl;
-    double proporz_classe1 = 7.5;
-    double proporz_classe2 = 5.5;
+    double proporz_classe1 = 9.3;
+    double proporz_classe2 = 3.7;
     double proporz_classe3 = 0;
     double totale_proporzione = proporz_classe1 + proporz_classe2 + proporz_classe3;
     for (s = 0; s < num_classi_di_servizio; s++) {
@@ -174,7 +174,8 @@ double loss_probability() {
         cout << " per classe[" << s+1 << "]: " << num_amici_per_classe[s] << endl;
     }
 
-    Lambda.push_back(lambda / num_amici_per_classe[0]);
+    Lambda.push_back(lambda / ceil(num_amici_per_classe[0]));
+    //Lambda.push_back(lambda / 8);
 
 
     cout << endl << "Probabilita' di blocco per servente " << endl;
@@ -184,7 +185,8 @@ double loss_probability() {
         array_prob_blocco_per_classe.push_back(prob_blocco(s));
         cout << " di classe[" << s+1 << "]: " << array_prob_blocco_per_classe[s] << endl;
         if (s < num_classi_di_servizio - 1)
-            Lambda.push_back((lambda * array_prob_blocco_per_classe[s]) / num_amici_per_classe[s+1]);       
+            Lambda.push_back((lambda * array_prob_blocco_per_classe[s]) / ceil(num_amici_per_classe[s+1])); 
+            //Lambda.push_back((lambda * array_prob_blocco_per_classe[s]) / 6);
     }
     
     

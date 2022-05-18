@@ -54,12 +54,9 @@ ylim([0 1])
 vettore_traffico_perso_mod = 20*vettore_y1_prob_blocco_modello;
 vettore_traffico_perso_sim2 = vettore_x_lambda.*vettore_y2_prob_blocco_sim;
 
-
 figure;
 plot(vettore_x_lambda,vettore_traffico_perso_mod,'*-','color', 'red');
 hold on
-% plot(vettore_x_lambda,vettore_traffico_perso_sim,'color', 'red');
+plot(vettore_x_lambda,vettore_traffico_perso_sim,'color', 'red');
 % hold on
-plot(vettore_x_lambda,vettore_traffico_perso_sim2,'+-','color', 'red');
-ylim([0 6])
-xlim([0 20])
+% plot(vettore_x_lambda,vettore_traffico_perso_sim2,'+-','color', 'red');
