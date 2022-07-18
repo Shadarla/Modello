@@ -32,19 +32,19 @@ plot(vettore_x_lambda,vettore_y1_prob_blocco_modello,'*-','color', 'red');
 hold on
 plot(vettore_x_lambda,vettore_y2_prob_blocco_sim,'color', 'red');
 hold on
-
+% 
 plot(vettore_x_lambda,vettore_y3_prob_blocco_modello,'*-','color', 'blue');
 hold on
 plot(vettore_x_lambda,vettore_y4_prob_blocco_sim,'color', 'blue');
-
+% 
 plot(vettore_x_lambda,vettore_y5_prob_blocco_modello,'*-','color', 'green');
 hold on
 plot(vettore_x_lambda,vettore_y6_prob_blocco_sim,'color', 'green');
-
-
-% plot(vettore_x_lambda,vettore_y7_prob_blocco_modello,'*-','color', 'yellow');
-% hold on
-% plot(vettore_x_lambda,vettore_y8_prob_blocco_sim,'color', 'yellow');
+% 
+% 
+plot(vettore_x_lambda,vettore_y7_prob_blocco_modello,'*-','color', 'black');
+hold on
+plot(vettore_x_lambda,vettore_y8_prob_blocco_sim,'color', 'black');
 
 set(gca,'XTick',[5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,25,30,35]);
 set(gca,'YTick',[0 0.05 0.1 0.15 0.2 0.25 0.3 0.35 0.4 0.8 1]);
@@ -54,12 +54,12 @@ ylim([0 1])
 vettore_traffico_perso_mod = 20*vettore_y1_prob_blocco_modello;
 vettore_traffico_perso_sim2 = vettore_x_lambda.*vettore_y2_prob_blocco_sim;
 
-
+% 
 figure;
 plot(vettore_x_lambda,vettore_traffico_perso_mod,'*-','color', 'red');
 hold on
 % plot(vettore_x_lambda,vettore_traffico_perso_sim,'color', 'red');
 % hold on
 plot(vettore_x_lambda,vettore_traffico_perso_sim2,'+-','color', 'red');
-ylim([0 6])
-xlim([0 20])
+ylim([0 20])
+xlim([0 50])

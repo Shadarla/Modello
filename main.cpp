@@ -9,57 +9,72 @@ using namespace std;
 
 double state_probability (int i, int j, int k);
 double calcolo_lambda_j();
+double modello_trust();
 double loss_probability();
 double prob_blocco(int index);
 double factorial(int n);
 
-int i = 18;
-int j = 20;
-int k = 0;
+int k = 18;
+int T = 20;
+int nj = 0;
 const int Number_of_nodes = 150;
-const double lambda = 50;
+const double lambda = 20;
 const int num_classi_di_servizio = 2;
 const int mu_j = 1.4; //verifica
 const bool type_of_node = 0; //0 per benevolo, 1 per malevolo
 const int max_allocab_resources = 2;
-const int max_passo = j+7; //esiste una formuletta per calcolarlo
-const int num_amici = 13; // supposto uguale per tutti
+const int max_passo = T+7; //esiste una formuletta per calcolarlo
+const int num_amici = 13; // supposto uguale per tutti (to check per caso non omogeneo)
+const int num_amici_j = 10;
 
 vector<double> mu;
 vector<double> num_amici_per_classe;
 vector<double> array_prob_blocco_per_classe;
 vector<double> Lambda;
 
+class specifiche_nodo
+{
+public:
+    int id_nodo;
+    double S; //social factor
+    double classe; 
+
+    //get e set
+};
+
+double topologia[num_amici_j][num_amici_j]; //importare topologia dal simulatore
+
+
 tuple <int, int, int> stato;
 map<tuple<int, int, int>, double> mapOfTuple;
 
 int main() {
-    int flag_prob_stato = 0;
-    int flag_prob_perdita = 1;
+    int flag_prob_stato = 1;
+    int flag_prob_perdita = 0;
 
     if (flag_prob_stato){
     
-        stato = make_tuple(i, j, k);
+        stato = make_tuple(k, T, nj);
         double P = 1;
         mapOfTuple[stato] = P;
 
 
-        cout << "Stato: (" << i << "," << j << "," << k << ") Il valore di Probabilita' di stato è: " << P << endl;
+        cout << "Stato: (" << k << "," << T << "," << nj << ") Probabilita' di stato: " << P << endl;
         // int estract = mapOfTuple[make_tuple(i,j,k)];
 
         //la prima prob è uno, quindi inizio a calcolare dalla seconda
-        k++;
+        nj++;
 
-        for (j = 20; j <= max_passo; j++) {
-            for (i = 18; i <= j - 2; i++) {
-                for (k = 0; k <= max_allocab_resources; k++) {
-                    if (j == 20 && i == 18 && k == 0)
+        for (T = 20; T <= max_passo; T++) {
+            for (k = 18; k <= T - 2; k++) {
+                for (nj = 0; nj <= max_allocab_resources; nj++) {
+                    if (T == 20 && k == 18 && nj == 0)
                         continue;
-                    cout << "Stato: (" << i << "," << j << "," << k << ") ";
-                    stato = make_tuple(i, j, k);
-                    P = state_probability(i, j, k);
+                    cout << "Stato: (" << k << "," << T << "," << nj << ") ";
+                    stato = make_tuple(k, T, nj);
+                    P = state_probability(k, T, nj);
                     mapOfTuple[stato] = P;
-                    cout << "Il valore di Probabilita' di stato è: " << P << endl;
+                    cout << "Probabilita' di stato: " << P << endl;
 
                 }
             }
@@ -75,17 +90,20 @@ int main() {
     return 0;
 }
 
-double state_probability(int i, int j, int k) {
+double state_probability(int k, int T, int nj) {
    
     double probabilita = 0;
     double probabilita_feedback_positivo = 0;
     double probabilita_feedback_negativo = 0;
     double lambda_j = calcolo_lambda_j();
+    
    
-    if (type_of_node == 0) {
+    if (type_of_node == 0) { 
+        //nodo benevolo
         probabilita_feedback_positivo = 0.9;
     }
-    else {
+    else { 
+        //nodo malevolo
         probabilita_feedback_positivo = 0.5;
     }
 
@@ -97,15 +115,15 @@ double state_probability(int i, int j, int k) {
     //controllo sullo stato attraverso map
 
     double prob_prima_parte = 0;
-    if (k - 1 >= 0){
-        prob_prima_parte = mapOfTuple[make_tuple(i, j, k - 1)] * lambda_j / (lambda_j + (k - 1) * mu_j);
+    if (nj - 1 >= 0){
+        prob_prima_parte = mapOfTuple[make_tuple(k, T, nj - 1)] * lambda_j / (lambda_j + (nj - 1) * mu_j);
     }
     else{
         prob_prima_parte = 0;
     }
         
-    double prob_seconda_parte = mapOfTuple[make_tuple(i, j-1, k+1)] * ((k + 1) * mu_j * probabilita_feedback_negativo) / (lambda_j + (k + 1) * mu_j);
-    double prob_terza_parte = mapOfTuple[make_tuple(i-1, j-1, k+1)] * ((k + 1) * mu_j * probabilita_feedback_positivo) / (lambda_j + (k + 1) * mu_j);
+    double prob_seconda_parte = mapOfTuple[make_tuple(k, T-1, nj+1)] * ((nj + 1) * mu_j * probabilita_feedback_negativo) / (lambda_j + (nj + 1) * mu_j);
+    double prob_terza_parte = mapOfTuple[make_tuple(k-1, T-1, nj+1)] * ((nj + 1) * mu_j * probabilita_feedback_positivo) / (lambda_j + (nj + 1) * mu_j);
 
     probabilita = prob_prima_parte + prob_seconda_parte + prob_terza_parte;
     return probabilita;
@@ -113,22 +131,53 @@ double state_probability(int i, int j, int k) {
  
 
 double calcolo_lambda_j() {
-    double lambda_provider = 1;
-    double prob_richiesta_assegnata_a_j = 1;
-    double prob_soprasoglia = 1;
-    double prob_j_piu_trusted = 1;
-    double prob_j_non_piu_trusted_ma_risorse = 1;
+    double lambda_provider = 1;  //lambda_j risultato da ritornare
+    vector<double> prob_richiesta_di_i_assegnata_a_j;
+    double lambda_ij = (lambda / Number_of_nodes);
+    //double prob_soprasoglia = 1;
+    //double prob_j_piu_trusted = 1;
+    //double prob_j_non_piu_trusted_ma_risorse = 1;
+    double trust_check = 0;
 
-   //prob_soprasoglia = 1;
-   // prob_j_piu_trusted = 1;
-   // prob_j_non_piu_trusted_ma_risorse = 1;
-
-    prob_richiesta_assegnata_a_j = prob_soprasoglia * prob_j_piu_trusted * prob_j_non_piu_trusted_ma_risorse ;
-    lambda_provider = (lambda / Number_of_nodes)* prob_richiesta_assegnata_a_j;
+    int i;
+    for (i = 0; i < num_amici_j-1; i++) {
+        trust_check = modello_trust();
+        prob_richiesta_di_i_assegnata_a_j.push_back(trust_check);
+        lambda_provider = lambda_provider + lambda_ij * prob_richiesta_di_i_assegnata_a_j[i];
+    }
+    
 
     return lambda_provider;
 }
 
+double modello_trust() {
+    int amico=0;
+    double valore_controllo_trust = 0;
+    double probabilità_congiunta = 1;
+    double prob_amico_piu_trusted_di_j = 1;
+    for (amico = 0; amico < num_amici_j - 1; amico++) {
+        valore_controllo_trust = valore_controllo_trust + (probabilità_congiunta*prob_amico_piu_trusted_di_j);
+    }
+
+    return valore_controllo_trust;
+}
+
+//CASO NON OMOGENEO
+/*double loss_probability() {
+    double prob_perdita = 1;
+    double traffico_perso = 0;
+    int s = 0;
+
+    cout << endl << "Probabilita' di perdita del sistema " << prob_perdita << endl;
+
+    traffico_perso = lambda * prob_perdita;
+    cout << endl << "traffico perso dal sistema " << traffico_perso << endl;
+    return prob_perdita;
+}*/
+
+
+
+//CASO OMOGENEO
 double loss_probability() {
 
     double prob_perdita = 1;
@@ -210,7 +259,9 @@ double prob_blocco(int index) {
 
     P_B_prima_parte = pow((Lambda[index]/mu[index]),(max_allocab_resources));
     P_B_seconda_parte = 1/factorial(max_allocab_resources);
-    
+
+
+    int i;
     for (i = 0; i <= (max_allocab_resources); i++) {
         sommatoria = pow((Lambda[index] / mu[index]), i) * (1 / factorial(i));
         risultato_sommatoria = risultato_sommatoria + sommatoria;
