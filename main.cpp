@@ -9,7 +9,9 @@ using namespace std;
 
 double state_probability (int i, int j, int k);
 double calcolo_lambda_j();
-double modello_trust();
+double trust_model();
+void calcolo_denominatore_lambda_k();
+double calcolo_lambda_k();
 double loss_probability();
 double prob_blocco(int index);
 double factorial(int n);
@@ -26,23 +28,67 @@ const int max_allocab_resources = 2;
 const int max_passo = T+7; //esiste una formuletta per calcolarlo
 const int num_amici = 13; // supposto uguale per tutti (to check per caso non omogeneo)
 const int num_amici_j = 10;
+double denominatore_lambda_k = 0; // non varia mai
 
 vector<double> mu;
 vector<double> num_amici_per_classe;
 vector<double> array_prob_blocco_per_classe;
 vector<double> Lambda;
 
+
 class specifiche_nodo
 {
-public:
+private:
     int id_nodo;
-    double S; //social factor
+    vector<double> S; //social factor
+    int num_amici;
     double classe; 
+    double mu;
+    bool type_of_node;
+    double probabilita_feedback_positivo;
+     
+public:
+    specifiche_nodo();
+    void set_num_amici(int);
+    int get_num_amici();
+    void set_probabilità_feedback_positivo(bool);
+    double get_probabilità_feedback_positivo();
+  
+    //double get_();
+    void set_num_amici(int amici_nodo) {
+        num_amici = amici_nodo;
+    }
 
-    //get e set
+    int get_num_amici() {
+        return this->num_amici;
+    }
+
+    void set_probabilità_feedback_positivo(bool type_of_node) {
+        if (type_of_node == 0) {
+            //nodo benevolo
+            probabilita_feedback_positivo = 0.9;
+        }
+        else {
+            //nodo malevolo
+            probabilita_feedback_positivo = 0.5;
+        }
+    }
+
+    double get_probabilità_feedback_positivo() {
+        return this->probabilita_feedback_positivo;
+    }
 };
 
-double topologia[num_amici_j][num_amici_j]; //importare topologia dal simulatore
+specifiche_nodo::specifiche_nodo() {
+    this->id_nodo = 0;
+    this->num_amici = 0;
+    this->classe = 0;
+    this->mu = 0;
+    this->type_of_node = 0;
+    this->probabilita_feedback_positivo = 0;
+}
+
+vector<specifiche_nodo> topologia;
 
 
 tuple <int, int, int> stato;
@@ -57,6 +103,7 @@ int main() {
         stato = make_tuple(k, T, nj);
         double P = 1;
         mapOfTuple[stato] = P;
+        calcolo_denominatore_lambda_k();
 
 
         cout << "Stato: (" << k << "," << T << "," << nj << ") Probabilita' di stato: " << P << endl;
@@ -128,7 +175,20 @@ double state_probability(int k, int T, int nj) {
     probabilita = prob_prima_parte + prob_seconda_parte + prob_terza_parte;
     return probabilita;
 }
+
+void calcolo_denominatore_lambda_k() {
+    int i = 0;
+    for (i = 0; i < topologia.size(); i++) {
+        denominatore_lambda_k = denominatore_lambda_k + topologia[i].get_probabilità_feedback_positivo() * topologia[i].get_num_amici();
+    }
+}
  
+double calcolo_lambda_k(int indice_amico_di_i) {
+    double lambda_k = 1;
+    
+   //lambda_k = (lambda * probabilita_feedback_positivo * numero amici di k) / denominatore_lambda_k;
+    return lambda_k;
+}
 
 double calcolo_lambda_j() {
     double lambda_provider = 1;  //lambda_j risultato da ritornare
@@ -141,7 +201,7 @@ double calcolo_lambda_j() {
 
     int i;
     for (i = 0; i < num_amici_j-1; i++) {
-        trust_check = modello_trust();
+        trust_check = trust_model(); // dopo teorema delle prob totali sul numero di amici di i piu trusted di j
         prob_richiesta_di_i_assegnata_a_j.push_back(trust_check);
         lambda_provider = lambda_provider + lambda_ij * prob_richiesta_di_i_assegnata_a_j[i];
     }
@@ -150,12 +210,22 @@ double calcolo_lambda_j() {
     return lambda_provider;
 }
 
-double modello_trust() {
-    int amico=0;
+double trust_model() {
+    int indice_amico=0;
     double valore_controllo_trust = 0;
-    double probabilità_congiunta = 1;
+    double probabilità_congiunta = 0;
     double prob_amico_piu_trusted_di_j = 1;
-    for (amico = 0; amico < num_amici_j - 1; amico++) {
+    int num_amici_i_piu_trusted = 0; // da verificare
+    double lambda_k = 0;
+        
+    for (indice_amico = 0; indice_amico < num_amici_i_piu_trusted - 1; indice_amico++) {
+        if (indice_amico == 0) {
+            probabilità_congiunta = 1;
+        }
+        else {
+            lambda_k = calcolo_lambda_k(indice_amico);
+            probabilità_congiunta = lambda_k; //prob di blocco del kappesimo amico
+        }
         valore_controllo_trust = valore_controllo_trust + (probabilità_congiunta*prob_amico_piu_trusted_di_j);
     }
 
