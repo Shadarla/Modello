@@ -1,4 +1,4 @@
-// Your First C++ Program
+// Modello
 using namespace std;
 #include <iostream>
 #include <vector>
@@ -6,6 +6,8 @@ using namespace std;
 #include <tuple>
 #include <math.h>
 
+
+//C:\Users\gianc\Documents\GitHub\SSIoT\Sim - n_services_1 - n_devices_25 - n_master_1 - lambda_10.000000 - tot_sim_500 - seed_3 - resource_ctrl_1 - qoe_ctrl_1
 
 double state_probability (int i, int j, int k);
 double calcolo_lambda_j();
@@ -22,7 +24,7 @@ int nj = 0;
 const int Number_of_nodes = 150;
 const double lambda = 20;
 const int num_classi_di_servizio = 2;
-const int mu_j = 1.4; //verifica
+const double mu_j = 1.4; //verifica
 const bool type_of_node = 0; //0 per benevolo, 1 per malevolo
 const int max_allocab_resources = 2;
 const int max_passo = T+7; //esiste una formuletta per calcolarlo
@@ -40,7 +42,6 @@ class specifiche_nodo
 {
 private:
     int id_nodo;
-    vector<double> S; //social factor
     int num_amici;
     double classe; 
     double mu;
@@ -48,13 +49,25 @@ private:
     double probabilita_feedback_positivo;
      
 public:
+    vector<double> S; //social factor
     specifiche_nodo();
-    void set_num_amici(int);
-    int get_num_amici();
-    void set_probabilità_feedback_positivo(bool);
-    double get_probabilità_feedback_positivo();
+   // void set_id_nodo(int);
+   // int get_id_nodo();
+   // void set_num_amici(int);
+   // int get_num_amici();
+   // void set_probabilità_feedback_positivo(bool);
+   // double get_probabilità_feedback_positivo();
   
-    //double get_();
+   
+
+    void set_id_nodo(int id) {
+        id_nodo = id;
+    }
+
+    int get_id_nodo() {
+        return this->id_nodo;
+    }
+
     void set_num_amici(int amici_nodo) {
         num_amici = amici_nodo;
     }
@@ -62,6 +75,7 @@ public:
     int get_num_amici() {
         return this->num_amici;
     }
+
 
     void set_probabilità_feedback_positivo(bool type_of_node) {
         if (type_of_node == 0) {
@@ -95,8 +109,27 @@ tuple <int, int, int> stato;
 map<tuple<int, int, int>, double> mapOfTuple;
 
 int main() {
-    int flag_prob_stato = 1;
+    int flag_prob_stato = 0;
     int flag_prob_perdita = 0;
+
+    int indice_topologia = 0;
+    specifiche_nodo nodo_di_appoggio;
+    int variabile_appoggio = 0;
+
+
+    for (indice_topologia = 0; indice_topologia < Number_of_nodes; indice_topologia++) {
+        //leggere dato da file e mettere in appoggio
+        variabile_appoggio = indice_topologia;
+        nodo_di_appoggio.set_id_nodo(variabile_appoggio);
+        variabile_appoggio = 0;
+        for (variabile_appoggio = 0; variabile_appoggio < Number_of_nodes; variabile_appoggio++) {
+            nodo_di_appoggio.S.push_back(variabile_appoggio);
+        }
+        variabile_appoggio = indice_topologia;
+        nodo_di_appoggio.set_num_amici(variabile_appoggio);
+        // inserire gli altri dati da file
+        topologia.push_back(nodo_di_appoggio);
+    }
 
     if (flag_prob_stato){
     
