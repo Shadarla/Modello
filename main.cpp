@@ -5,6 +5,9 @@ using namespace std;
 #include <map>
 #include <tuple>
 #include <math.h>
+#include <fstream>
+#include <string>
+#include <sstream>
 
 
 //C:\Users\gianc\Documents\GitHub\SSIoT\Sim - n_services_1 - n_devices_25 - n_master_1 - lambda_10.000000 - tot_sim_500 - seed_3 - resource_ctrl_1 - qoe_ctrl_1
@@ -21,7 +24,7 @@ double factorial(int n);
 int k = 18;
 int T = 20;
 int nj = 0;
-const int Number_of_nodes = 150;
+const int Number_of_nodes = 25;
 const double lambda = 20;
 const int num_classi_di_servizio = 2;
 const double mu_j = 1.4; //verifica
@@ -114,22 +117,44 @@ int main() {
 
     int indice_topologia = 0;
     specifiche_nodo nodo_di_appoggio;
-    int variabile_appoggio = 0;
+    specifiche_nodo reset;
+    double variabile_appoggio = 0;
+    string path = "SocialMatrix.txt";
+    int contatore_amici = 0;
+    string line;
+    int social_index = 0;
 
+    ifstream sim_file(path);
 
     for (indice_topologia = 0; indice_topologia < Number_of_nodes; indice_topologia++) {
         //leggere dato da file e mettere in appoggio
-        variabile_appoggio = indice_topologia;
-        nodo_di_appoggio.set_id_nodo(variabile_appoggio);
-        variabile_appoggio = 0;
-        for (variabile_appoggio = 0; variabile_appoggio < Number_of_nodes; variabile_appoggio++) {
-            nodo_di_appoggio.S.push_back(variabile_appoggio);
+        
+        nodo_di_appoggio.set_id_nodo(indice_topologia+1);
+             
+       //>>
+
+        if (sim_file.is_open()) {
+
+            getline(sim_file, line);
+            istringstream iss(line);
+                for (social_index = 0; social_index < Number_of_nodes; social_index++)
+                {
+                    iss >> variabile_appoggio;
+                   //cout << variabile_appoggio << '\n';
+                    nodo_di_appoggio.S.push_back(variabile_appoggio);
+                    if (variabile_appoggio > 0) {
+                        contatore_amici++;
+                    }
+                }       
         }
-        variabile_appoggio = indice_topologia;
-        nodo_di_appoggio.set_num_amici(variabile_appoggio);
+        nodo_di_appoggio.set_num_amici(contatore_amici);
+        contatore_amici = 0;
+
         // inserire gli altri dati da file
         topologia.push_back(nodo_di_appoggio);
+        nodo_di_appoggio = reset;
     }
+    sim_file.close();
 
     if (flag_prob_stato){
     
