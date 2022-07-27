@@ -14,9 +14,9 @@ using namespace std;
 
 double state_probability (int i, int j, int k);
 double calcolo_lambda_j();
-double trust_model();
+double trust_model(int id_amico_di_j);
 void calcolo_denominatore_lambda_k();
-double calcolo_lambda_k();
+double calcolo_lambda_k(int id_nodo_k);
 double loss_probability();
 double prob_blocco(int index);
 double factorial(int n);
@@ -32,8 +32,9 @@ const bool type_of_node = 0; //0 per benevolo, 1 per malevolo
 const int max_allocab_resources = 2;
 const int max_passo = T+7; //esiste una formuletta per calcolarlo
 const int num_amici = 13; // supposto uguale per tutti (to check per caso non omogeneo)
-const int num_amici_j = 10;
+//const int num_amici_j = 10;
 double denominatore_lambda_k = 0; // non varia mai
+const int id_nodo_j = 1; //id del nodo da valutare
 
 vector<double> mu;
 vector<double> num_amici_per_classe;
@@ -79,6 +80,13 @@ public:
         return this->num_amici;
     }
 
+    void set_type(bool tipo) {
+        type_of_node = tipo;
+    }
+
+    int get_type() {
+        return this->type_of_node;
+    }
 
     void set_probabilità_feedback_positivo(bool type_of_node) {
         if (type_of_node == 0) {
@@ -106,7 +114,8 @@ specifiche_nodo::specifiche_nodo() {
 }
 
 vector<specifiche_nodo> topologia;
-
+vector<int> amici_di_j;
+vector<int> amici_di_i;
 
 tuple <int, int, int> stato;
 map<tuple<int, int, int>, double> mapOfTuple;
@@ -124,15 +133,14 @@ int main() {
     string line;
     int social_index = 0;
 
-    ifstream sim_file(path);
+    //SETTO LA TOPOLOGIA
 
+    ifstream sim_file(path);
     for (indice_topologia = 0; indice_topologia < Number_of_nodes; indice_topologia++) {
         //leggere dato da file e mettere in appoggio
         
         nodo_di_appoggio.set_id_nodo(indice_topologia+1);
-             
-       //>>
-
+       
         if (sim_file.is_open()) {
 
             getline(sim_file, line);
@@ -142,13 +150,16 @@ int main() {
                     iss >> variabile_appoggio;
                    //cout << variabile_appoggio << '\n';
                     nodo_di_appoggio.S.push_back(variabile_appoggio);
-                    if (variabile_appoggio > 0) {
+                    if (variabile_appoggio > 0) 
                         contatore_amici++;
-                    }
                 }       
         }
+
         nodo_di_appoggio.set_num_amici(contatore_amici);
         contatore_amici = 0;
+
+        nodo_di_appoggio.set_type(0);
+        nodo_di_appoggio.set_probabilità_feedback_positivo(nodo_di_appoggio.get_type());
 
         // inserire gli altri dati da file
         topologia.push_back(nodo_di_appoggio);
@@ -164,7 +175,7 @@ int main() {
         calcolo_denominatore_lambda_k();
 
 
-        cout << "Stato: (" << k << "," << T << "," << nj << ") Probabilita' di stato: " << P << endl;
+        std::cout << "Stato: (" << k << "," << T << "," << nj << ") Probabilita' di stato: " << P << endl;
         // int estract = mapOfTuple[make_tuple(i,j,k)];
 
         //la prima prob è uno, quindi inizio a calcolare dalla seconda
@@ -175,11 +186,11 @@ int main() {
                 for (nj = 0; nj <= max_allocab_resources; nj++) {
                     if (T == 20 && k == 18 && nj == 0)
                         continue;
-                    cout << "Stato: (" << k << "," << T << "," << nj << ") ";
+                    std::cout << "Stato: (" << k << "," << T << "," << nj << ") ";
                     stato = make_tuple(k, T, nj);
                     P = state_probability(k, T, nj);
                     mapOfTuple[stato] = P;
-                    cout << "Probabilita' di stato: " << P << endl;
+                    std::cout << "Probabilita' di stato: " << P << endl;
 
                 }
             }
@@ -241,10 +252,10 @@ void calcolo_denominatore_lambda_k() {
     }
 }
  
-double calcolo_lambda_k(int indice_amico_di_i) {
+double calcolo_lambda_k(int id_nodo_k) {
     double lambda_k = 1;
     
-   //lambda_k = (lambda * probabilita_feedback_positivo * numero amici di k) / denominatore_lambda_k;
+    lambda_k = (lambda * topologia[id_nodo_k-1].get_probabilità_feedback_positivo() * topologia[id_nodo_k - 1].get_num_amici()) / denominatore_lambda_k;
     return lambda_k;
 }
 
@@ -257,34 +268,69 @@ double calcolo_lambda_j() {
     //double prob_j_non_piu_trusted_ma_risorse = 1;
     double trust_check = 0;
 
+
+    int num_amici_j = topologia[id_nodo_j - 1].get_num_amici();
+    //estrarre un vettore da topologia con i soli amici di j?
+    
     int i;
+    for (i = 0; i < Number_of_nodes; i++)
+    {
+        if(topologia[id_nodo_j-1].S[i] > 0)
+            amici_di_j.push_back(topologia[id_nodo_j-1].S[i]);
+    }
+
+   
     for (i = 0; i < num_amici_j-1; i++) {
-        trust_check = trust_model(); // dopo teorema delle prob totali sul numero di amici di i piu trusted di j
+        trust_check = trust_model(amici_di_j[i]); // dopo teorema delle prob totali sul numero di amici di i piu trusted di j
         prob_richiesta_di_i_assegnata_a_j.push_back(trust_check);
-        lambda_provider = lambda_provider + lambda_ij * prob_richiesta_di_i_assegnata_a_j[i];
+        lambda_provider = lambda_provider + (lambda_ij * prob_richiesta_di_i_assegnata_a_j[i]);
     }
     
 
     return lambda_provider;
 }
 
-double trust_model() {
-    int indice_amico=0;
+double trust_model(int id_amico_di_j) {
     double valore_controllo_trust = 0;
-    double probabilità_congiunta = 0;
+    double probabilità_congiunta_k1 = 0;
+    double probabilità_congiunta_k2 = 0;
     double prob_amico_piu_trusted_di_j = 1;
-    int num_amici_i_piu_trusted = 0; // da verificare
+    int amico_di_i = 0; // da verificare
     double lambda_k = 0;
-        
-    for (indice_amico = 0; indice_amico < num_amici_i_piu_trusted - 1; indice_amico++) {
-        if (indice_amico == 0) {
-            probabilità_congiunta = 1;
+
+    
+    int i;
+    int j;
+    for (i = 0; i < Number_of_nodes; i++)
+    {
+        if (topologia[id_amico_di_j-1].S[i] > 0)
+            amici_di_i.push_back(topologia[id_amico_di_j-1].S[i]);
+    }
+            
+    for (i = 0; i < amici_di_i.size(); i++) {
+        if (i == 0) {
+            probabilità_congiunta_k1 = 1;
         }
-        else {
-            lambda_k = calcolo_lambda_k(indice_amico);
-            probabilità_congiunta = lambda_k; //prob di blocco del kappesimo amico
+        else if(i ==1) {
+            //to check here 
+            for (j = 0; j < amici_di_i.size(); j++) {
+                lambda_k = calcolo_lambda_k(amici_di_i[j]);
+            }
+            
+            probabilità_congiunta_k1 = lambda_k; //aggiungere tutta la prob di blocco del kappesimo amico
         }
-        valore_controllo_trust = valore_controllo_trust + (probabilità_congiunta*prob_amico_piu_trusted_di_j);
+        else if (i == 2) {
+            //to check here se posso fermarmi a due
+            lambda_k = calcolo_lambda_k(i);
+            probabilità_congiunta_k1 = lambda_k; //aggiungere tutta la prob di blocco del kappesimo amico
+            lambda_k = calcolo_lambda_k(i);
+            probabilità_congiunta_k2 = lambda_k;
+            probabilità_congiunta_k1 = probabilità_congiunta_k1 * probabilità_congiunta_k2;
+        }
+
+
+        //prob_amico_piu_trusted_di_j da calcolare calcolo di prob binomiale
+        valore_controllo_trust = valore_controllo_trust + (probabilità_congiunta_k1*prob_amico_piu_trusted_di_j);
     }
 
     return valore_controllo_trust;
@@ -313,7 +359,7 @@ double loss_probability() {
     int s = 0;
 
     //assegno i valori dei tempi di servizio
-    cout << endl << "Stampo valori di mu: " << endl;
+    std::cout << endl << "Stampo valori di mu: " << endl;
     for (s = 0; s < num_classi_di_servizio; s++) {
         if (s == 0) {
             mu.push_back(1.4);
@@ -324,12 +370,12 @@ double loss_probability() {
         if (s >= 2) {
             mu.push_back(0.025);
         }
-        cout << " mu[" << s+1 << "] = " << mu[s] << endl;
+        std::cout << " mu[" << s+1 << "] = " << mu[s] << endl;
     }
 
     //assegno il numero di amici per ogni classe di servizio
 
-    cout << endl << "Il numero totale di amici per object e': " << num_amici << endl << "Numero di amici per classe: " << endl;
+    std::cout << endl << "Il numero totale di amici per object e': " << num_amici << endl << "Numero di amici per classe: " << endl;
     double proporz_classe1 = 9.3;
     double proporz_classe2 = 3.7;
     double proporz_classe3 = 0;
@@ -348,19 +394,19 @@ double loss_probability() {
             num_amici_per_classe.push_back(num_amici * proporz_classe3 / totale_proporzione);
         }
        //num_amici_per_classe.push_back(num_amici/ num_classi_di_servizio);
-        cout << " per classe[" << s+1 << "]: " << num_amici_per_classe[s] << endl;
+        std::cout << " per classe[" << s+1 << "]: " << num_amici_per_classe[s] << endl;
     }
 
     Lambda.push_back(lambda / ceil(num_amici_per_classe[0]));
     //Lambda.push_back(lambda / 8);
 
 
-    cout << endl << "Probabilita' di blocco per servente " << endl;
+    std::cout << endl << "Probabilita' di blocco per servente " << endl;
    // array_prob_blocco_per_classe.push_back(prob_blocco(0));
     //cout << " di classe[1]: " << array_prob_blocco_per_classe[0] << endl;
     for (s = 0; s < num_classi_di_servizio; s++) {
         array_prob_blocco_per_classe.push_back(prob_blocco(s));
-        cout << " di classe[" << s+1 << "]: " << array_prob_blocco_per_classe[s] << endl;
+        std::cout << " di classe[" << s+1 << "]: " << array_prob_blocco_per_classe[s] << endl;
         if (s < num_classi_di_servizio - 1)
             Lambda.push_back((lambda * array_prob_blocco_per_classe[s]) / ceil(num_amici_per_classe[s+1])); 
             //Lambda.push_back((lambda * array_prob_blocco_per_classe[s]) / 6);
@@ -371,10 +417,10 @@ double loss_probability() {
         prob_perdita = prob_perdita * array_prob_blocco_per_classe[s];
     }
 
-    cout << endl << "Probabilita' di perdita del sistema "<< prob_perdita << endl;
+    std::cout << endl << "Probabilita' di perdita del sistema "<< prob_perdita << endl;
    
     traffico_perso = lambda * prob_perdita;
-    cout << endl << "traffico perso dal sistema " << traffico_perso << endl;
+    std::cout << endl << "traffico perso dal sistema " << traffico_perso << endl;
     return prob_perdita;
 }
 
