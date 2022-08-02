@@ -20,6 +20,7 @@ double calcolo_lambda_k(int id_nodo_k);
 double loss_probability();
 double prob_blocco(int index);
 double factorial(int n);
+double prob_binomiale(vector<int> amici_di_i);
 
 int k = 18;
 int T = 20;
@@ -294,46 +295,113 @@ double trust_model(int id_amico_di_j) {
     double valore_controllo_trust = 0;
     double probabilità_congiunta_k1 = 0;
     double probabilità_congiunta_k2 = 0;
+    double prodotto_prob_congiuta = 0;
     double prob_amico_piu_trusted_di_j = 1;
+    double prob_amico_piu_trusted_di_j2 = 1;
+    double prodotto_prob_amico_piu_trusted_di_j = 1;
     int amico_di_i = 0; // da verificare
     double lambda_k = 0;
+    double lambda_k2 = 0;
 
     
     int i;
     int j;
+    int j2;
+
     for (i = 0; i < Number_of_nodes; i++)
     {
-        if (topologia[id_amico_di_j-1].S[i] > 0)
-            amici_di_i.push_back(topologia[id_amico_di_j-1].S[i]);
+        if (topologia[id_amico_di_j - 1].S[i] > 0) {//controllare che non sia id nodo j
+           // if(topologia[id_amico_di_j - 1].S[i] != id_nodo_j)
+                amici_di_i.push_back(topologia[id_amico_di_j - 1].S[i]);
+        }
     }
             
     for (i = 0; i < amici_di_i.size(); i++) {
         if (i == 0) {
-            probabilità_congiunta_k1 = 1;
+           probabilità_congiunta_k1 = 1;
+           prob_amico_piu_trusted_di_j = prob_binomiale(amici_di_i);// ,passare lo stato di j)
         }
         else if(i ==1) {
             //to check here 
             for (j = 0; j < amici_di_i.size(); j++) {
+                //ricordarsi di controllare di escludere j dagli amici di i possibili piu trusted di j
                 lambda_k = calcolo_lambda_k(amici_di_i[j]);
+                probabilità_congiunta_k1 = lambda_k;
+                //prob_amico_piu_trusted_di_j da calcolare calcolo di prob binomiale
+                //prob_amico_piu_trusted_di_j
+                //valore_controllo_trust = valore_controllo_trust + (probabilità_congiunta_k1 * prob_amico_piu_trusted_di_j);
             }
-            
-            probabilità_congiunta_k1 = lambda_k; //aggiungere tutta la prob di blocco del kappesimo amico
         }
         else if (i == 2) {
             //to check here se posso fermarmi a due
-            lambda_k = calcolo_lambda_k(i);
-            probabilità_congiunta_k1 = lambda_k; //aggiungere tutta la prob di blocco del kappesimo amico
-            lambda_k = calcolo_lambda_k(i);
-            probabilità_congiunta_k2 = lambda_k;
-            probabilità_congiunta_k1 = probabilità_congiunta_k1 * probabilità_congiunta_k2;
+            for (j = 0; j < amici_di_i.size(); j++) {
+                lambda_k = calcolo_lambda_k(amici_di_i[j]);
+                probabilità_congiunta_k1 = lambda_k; //aggiungere tutta la prob di blocco del kappesimo amico
+                for (j2 = 0; j2 < amici_di_i.size(); j2++) {
+                    if (amici_di_i[j] != amici_di_i[j2]) {
+                        lambda_k2 = calcolo_lambda_k(amici_di_i[j2]);
+                        probabilità_congiunta_k2 = lambda_k;
+                        prodotto_prob_congiuta = probabilità_congiunta_k1 * probabilità_congiunta_k2;
+                        //prob_amico_piu_trusted_di_j
+                        //prob_amico_piu_trusted_di_j2
+                        
+                        //prodotto_prob_amico_piu_trusted_di_j = prob_amico_piu_trusted_di_j * prob_amico_piu_trusted_di_j2;
+                        //valore_controllo_trust = valore_controllo_trust + (prodotto_prob_congiuta * prodotto_prob_amico_piu_trusted_di_j);
+
+                    }
+                    
+                }
+
+            }
+            
+            
+            
+            
         }
 
 
-        //prob_amico_piu_trusted_di_j da calcolare calcolo di prob binomiale
-        valore_controllo_trust = valore_controllo_trust + (probabilità_congiunta_k1*prob_amico_piu_trusted_di_j);
+     
     }
 
     return valore_controllo_trust;
+}
+
+double prob_binomiale(vector<int> amici_di_i) {
+
+    double valore_probabilità_totale = 1;
+    double valore_probabilità_parziale = 1;
+    double valore_binomiale_sommatoria_totale = 1;
+    double binomiale = 0;
+    int i = 0;
+    int n_index = 0;
+    int n0 = 0;
+    int id_amico_di_i = 0;
+    int T_km = 0;
+    int T_j = 0; //raccattarla dallo stato
+    specifiche_nodo km;
+
+    for (i = 0; i < amici_di_i.size(); i++) {
+        id_amico_di_i = amici_di_i[i];
+        km = topologia[id_amico_di_i];
+        if (km.get_type() == topologia[id_nodo_j - 1].get_type())
+            T_km = T_j;
+        else {
+            //formula se non sono dello stesso tipo
+        }
+        //calcolare n0=(intero piu piccolo Sij*delta j dallo stato*T_km)/Sik;
+        for (n_index = 0; n_index < n0; n_index++)
+        {
+            binomiale = factorial(T_km)/ factorial(n_index)*factorial(T_km- n_index);//calcolo binomiale tra T_km e n_index;
+            binomiale = binomiale * km.get_probabilità_feedback_positivo()^n_index * (1 - km.get_probabilità_feedback_positivo()) ^ (T_km - n_index);
+            valore_binomiale_sommatoria_totale = valore_binomiale_sommatoria_totale + binomiale;
+
+        }
+        valore_probabilità_parziale = valore_probabilità_parziale * valore_binomiale_sommatoria_totale;
+    }
+
+    binomiale = ;
+
+    return valore_probabilità_totale;
 }
 
 //CASO NON OMOGENEO
