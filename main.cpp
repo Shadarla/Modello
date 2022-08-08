@@ -20,23 +20,25 @@ double calcolo_lambda_k(int id_nodo_k);
 double loss_probability();
 double prob_blocco(int index);
 double factorial(int n);
-double prob_binomiale(vector<int> amici_di_i);
+double prob_binomiale(vector<int> amici_di_i, int id_amico_j);
+int proporzionalita_tk(specifiche_nodo km);
 
-int k = 18;
-int T = 20;
+int kj = 18;
+int Tj = 20;
 int nj = 0;
 const int Number_of_nodes = 25;
 const double lambda = 20;
 const int num_classi_di_servizio = 2;
-const double mu_j = 1.4; //verifica
-const bool type_of_node = 0; //0 per benevolo, 1 per malevolo
+const double mu_j = 1.4; //verifica (potrebbe anche non servire piu)
+const bool type_of_node = 0; //0 per benevolo, 1 per malevolo (potrebbe anche non servire piu)
 const int max_allocab_resources = 2;
-const int max_passo = T+7; //esiste una formuletta per calcolarlo
-const int num_amici = 13; // supposto uguale per tutti (to check per caso non omogeneo)
-//const int num_amici_j = 10;
+const int max_passo = Tj+7; //esiste una formuletta per calcolarlo
+const int num_amici = 13; // supposto uguale per tutti (to check per caso non omogeneo e potrebbe non servire piu)
 double denominatore_lambda_k = 0; // non varia mai
 const int id_nodo_j = 1; //id del nodo da valutare
 
+
+//vettori per prob blocco
 vector<double> mu;
 vector<double> num_amici_per_classe;
 vector<double> array_prob_blocco_per_classe;
@@ -48,7 +50,7 @@ class specifiche_nodo
 private:
     int id_nodo;
     int num_amici;
-    double classe; 
+    int classe; 
     double mu;
     bool type_of_node;
     double probabilita_feedback_positivo;
@@ -56,13 +58,6 @@ private:
 public:
     vector<double> S; //social factor
     specifiche_nodo();
-   // void set_id_nodo(int);
-   // int get_id_nodo();
-   // void set_num_amici(int);
-   // int get_num_amici();
-   // void set_probabilità_feedback_positivo(bool);
-   // double get_probabilità_feedback_positivo();
-  
    
 
     void set_id_nodo(int id) {
@@ -103,8 +98,38 @@ public:
     double get_probabilità_feedback_positivo() {
         return this->probabilita_feedback_positivo;
     }
+   
+    void set_classe(int classe_disp) {
+        classe = classe_disp;
+    }
+
+    int get_classe() {
+        return this->classe;
+    }
+
+    void set_mu(int classe_disp) {
+        if (classe_disp == 0) {
+            //classe piu alta
+            mu = 1.4;
+        }
+        else if (classe_disp == 1) {
+            //classe media
+            mu = 0.7;
+        }
+        else if (classe_disp == 2) {
+            //classe peggiore
+            mu = 0.025;
+        }
+
+    }
+
+
+    double get_mu() {
+        return this->mu;
+    }
 };
 
+//costruttore
 specifiche_nodo::specifiche_nodo() {
     this->id_nodo = 0;
     this->num_amici = 0;
@@ -122,10 +147,11 @@ tuple <int, int, int> stato;
 map<tuple<int, int, int>, double> mapOfTuple;
 
 int main() {
+    //cosa voglio eseguire?
     int flag_prob_stato = 0;
     int flag_prob_perdita = 0;
 
-    int indice_topologia = 0;
+    int indice_topologia = 0; //indice per il vettore di classi
     specifiche_nodo nodo_di_appoggio;
     specifiche_nodo reset;
     double variabile_appoggio = 0;
@@ -159,10 +185,11 @@ int main() {
         nodo_di_appoggio.set_num_amici(contatore_amici);
         contatore_amici = 0;
 
-        nodo_di_appoggio.set_type(0);
+        nodo_di_appoggio.set_type(0); //andrebbe preso anche questo dal simulatore
         nodo_di_appoggio.set_probabilità_feedback_positivo(nodo_di_appoggio.get_type());
+        nodo_di_appoggio.set_classe(0); //andrebbe preso anche questo dal simulatore
+        nodo_di_appoggio.set_mu(nodo_di_appoggio.get_classe());
 
-        // inserire gli altri dati da file
         topologia.push_back(nodo_di_appoggio);
         nodo_di_appoggio = reset;
     }
@@ -170,26 +197,26 @@ int main() {
 
     if (flag_prob_stato){
     
-        stato = make_tuple(k, T, nj);
+        stato = make_tuple(kj, Tj, nj);
         double P = 1;
         mapOfTuple[stato] = P;
+
         calcolo_denominatore_lambda_k();
 
-
-        std::cout << "Stato: (" << k << "," << T << "," << nj << ") Probabilita' di stato: " << P << endl;
+        std::cout << "Stato: (" << kj << "," << Tj << "," << nj << ") Probabilita' di stato: " << P << endl;
         // int estract = mapOfTuple[make_tuple(i,j,k)];
 
         //la prima prob è uno, quindi inizio a calcolare dalla seconda
         nj++;
 
-        for (T = 20; T <= max_passo; T++) {
-            for (k = 18; k <= T - 2; k++) {
+        for (Tj = 20; Tj <= max_passo; Tj++) {
+            for (kj = 18; kj <= Tj - 2; kj++) {
                 for (nj = 0; nj <= max_allocab_resources; nj++) {
-                    if (T == 20 && k == 18 && nj == 0)
+                    if (Tj == 20 && kj == 18 && nj == 0)
                         continue;
-                    std::cout << "Stato: (" << k << "," << T << "," << nj << ") ";
-                    stato = make_tuple(k, T, nj);
-                    P = state_probability(k, T, nj);
+                    std::cout << "Stato: (" << kj << "," << Tj << "," << nj << ") ";
+                    stato = make_tuple(kj, Tj, nj);
+                    P = state_probability(kj, Tj, nj);
                     mapOfTuple[stato] = P;
                     std::cout << "Probabilita' di stato: " << P << endl;
 
@@ -207,40 +234,24 @@ int main() {
     return 0;
 }
 
-double state_probability(int k, int T, int nj) {
+double state_probability(int kj, int Tj, int nj) {
    
     double probabilita = 0;
-    double probabilita_feedback_positivo = 0;
-    double probabilita_feedback_negativo = 0;
     double lambda_j = calcolo_lambda_j();
     
    
-    if (type_of_node == 0) { 
-        //nodo benevolo
-        probabilita_feedback_positivo = 0.9;
-    }
-    else { 
-        //nodo malevolo
-        probabilita_feedback_positivo = 0.5;
-    }
-
-    probabilita_feedback_negativo = (1 - probabilita_feedback_positivo);
-
-    // al posto di 0.5 andrà rispettivamente il valore dal map P(kj,Tj,nj-1), P(kj,Tj-1,nj+1), P(kj-1,Tj-1,nj+1)
-    //ricordasi di sostuire tutti e tre gli act_res[k] rispettivamente con k-1, e poi tutti k+1 quando si potrà fare
-
     //controllo sullo stato attraverso map
 
     double prob_prima_parte = 0;
     if (nj - 1 >= 0){
-        prob_prima_parte = mapOfTuple[make_tuple(k, T, nj - 1)] * lambda_j / (lambda_j + (nj - 1) * mu_j);
+        prob_prima_parte = mapOfTuple[make_tuple(kj, Tj, nj - 1)] * lambda_j / (lambda_j + (nj - 1) * topologia[id_nodo_j-1].get_mu());
     }
     else{
         prob_prima_parte = 0;
     }
         
-    double prob_seconda_parte = mapOfTuple[make_tuple(k, T-1, nj+1)] * ((nj + 1) * mu_j * probabilita_feedback_negativo) / (lambda_j + (nj + 1) * mu_j);
-    double prob_terza_parte = mapOfTuple[make_tuple(k-1, T-1, nj+1)] * ((nj + 1) * mu_j * probabilita_feedback_positivo) / (lambda_j + (nj + 1) * mu_j);
+    double prob_seconda_parte = mapOfTuple[make_tuple(kj, Tj-1, nj+1)] * ((nj + 1) * topologia[id_nodo_j-1].get_mu() * (1-topologia[id_nodo_j - 1].get_probabilità_feedback_positivo())) / (lambda_j + (nj + 1) * topologia[id_nodo_j-1].get_mu());
+    double prob_terza_parte = mapOfTuple[make_tuple(kj-1, Tj-1, nj+1)] * ((nj + 1) * topologia[id_nodo_j-1].get_mu() * topologia[id_nodo_j - 1].get_probabilità_feedback_positivo()) / (lambda_j + (nj + 1) * topologia[id_nodo_j-1].get_mu());
 
     probabilita = prob_prima_parte + prob_seconda_parte + prob_terza_parte;
     return probabilita;
@@ -319,7 +330,7 @@ double trust_model(int id_amico_di_j) {
     for (i = 0; i < amici_di_i.size(); i++) {
         if (i == 0) {
            probabilità_congiunta_k1 = 1;
-           prob_amico_piu_trusted_di_j = prob_binomiale(amici_di_i);// ,passare lo stato di j)
+           prob_amico_piu_trusted_di_j = prob_binomiale(amici_di_i, id_amico_di_j);// ,passare lo stato di j)
         }
         else if(i ==1) {
             //to check here 
@@ -366,7 +377,7 @@ double trust_model(int id_amico_di_j) {
     return valore_controllo_trust;
 }
 
-double prob_binomiale(vector<int> amici_di_i) {
+double prob_binomiale(vector<int> amici_di_i,int id_amico_di_j) {
 
     double valore_probabilità_totale = 1;
     double valore_probabilità_parziale = 1;
@@ -377,31 +388,39 @@ double prob_binomiale(vector<int> amici_di_i) {
     int n0 = 0;
     int id_amico_di_i = 0;
     int T_km = 0;
-    int T_j = 0; //raccattarla dallo stato
     specifiche_nodo km;
 
     for (i = 0; i < amici_di_i.size(); i++) {
         id_amico_di_i = amici_di_i[i];
         km = topologia[id_amico_di_i];
         if (km.get_type() == topologia[id_nodo_j - 1].get_type())
-            T_km = T_j;
+            T_km = Tj;
         else {
             //formula se non sono dello stesso tipo
+            T_km = proporzionalita_tk(km);
         }
         //calcolare n0=(intero piu piccolo Sij*delta j dallo stato*T_km)/Sik;
+        n0 = (topologia[id_amico_di_j-1].S[id_nodo_j-1] * (kj / Tj) * T_km) / km.S[id_amico_di_j - 1];
         for (n_index = 0; n_index < n0; n_index++)
         {
-            binomiale = factorial(T_km)/ factorial(n_index)*factorial(T_km- n_index);//calcolo binomiale tra T_km e n_index;
-            binomiale = binomiale * km.get_probabilità_feedback_positivo()^n_index * (1 - km.get_probabilità_feedback_positivo()) ^ (T_km - n_index);
+            binomiale = factorial(T_km)/ (factorial(n_index) * factorial(T_km- n_index));//calcolo binomiale tra T_km e n_index;
+            binomiale = binomiale * pow(km.get_probabilità_feedback_positivo(),n_index) * pow(1 - km.get_probabilità_feedback_positivo(), T_km - n_index);
             valore_binomiale_sommatoria_totale = valore_binomiale_sommatoria_totale + binomiale;
 
         }
         valore_probabilità_parziale = valore_probabilità_parziale * valore_binomiale_sommatoria_totale;
     }
 
-    binomiale = ;
-
     return valore_probabilità_totale;
+}
+
+int proporzionalita_tk(specifiche_nodo km) {
+    int T_k = 0;
+
+    //recuperare T_j dallo stato
+    T_k = (Tj * km.get_probabilità_feedback_positivo() * km.get_num_amici()) / (topologia[id_nodo_j - 1].get_probabilità_feedback_positivo() * topologia[id_nodo_j - 1].get_num_amici());
+    return T_k;
+
 }
 
 //CASO NON OMOGENEO
