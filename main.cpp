@@ -36,6 +36,8 @@ const int max_passo = Tj+7; //esiste una formuletta per calcolarlo
 const int num_amici = 13; // supposto uguale per tutti (to check per caso non omogeneo e potrebbe non servire piu)
 double denominatore_lambda_k = 0; // non varia mai
 const int id_nodo_j = 1; //id del nodo da valutare
+const double lambda_ij = (lambda / Number_of_nodes); //essendo omogenea la distribuzione al momento è uguale per tutti
+const double soglia = 0.03;
 
 
 //vettori per prob blocco
@@ -140,8 +142,7 @@ specifiche_nodo::specifiche_nodo() {
 }
 
 vector<specifiche_nodo> topologia;
-vector<int> amici_di_j;
-vector<int> amici_di_i;
+vector<int> indici_amici_di_i;
 
 tuple <int, int, int> stato;
 map<tuple<int, int, int>, double> mapOfTuple;
@@ -272,33 +273,24 @@ double calcolo_lambda_k(int id_nodo_k) {
 }
 
 double calcolo_lambda_j() {
-    double lambda_provider = 1;  //lambda_j risultato da ritornare
+    double lambda_provider = 0;  //lambda_j risultato da ritornare
     vector<double> prob_richiesta_di_i_assegnata_a_j;
-    double lambda_ij = (lambda / Number_of_nodes);
-    //double prob_soprasoglia = 1;
-    //double prob_j_piu_trusted = 1;
-    //double prob_j_non_piu_trusted_ma_risorse = 1;
-    double trust_check = 0;
-
-
-    int num_amici_j = topologia[id_nodo_j - 1].get_num_amici();
-    //estrarre un vettore da topologia con i soli amici di j?
     
     int i;
-    for (i = 0; i < Number_of_nodes; i++)
-    {
-        if(topologia[id_nodo_j-1].S[i] > 0)
-            amici_di_j.push_back(topologia[id_nodo_j-1].S[i]);
-    }
-
-   
-    for (i = 0; i < num_amici_j-1; i++) {
-        trust_check = trust_model(amici_di_j[i]); // dopo teorema delle prob totali sul numero di amici di i piu trusted di j
-        prob_richiesta_di_i_assegnata_a_j.push_back(trust_check);
+  
+    for (i = 0; i < Number_of_nodes; i++) {
+        // dopo teorema delle prob totali sul numero di amici di i piu trusted di j
+        if (topologia[id_nodo_j - 1].S[i] > 0) {
+            if (topologia[id_nodo_j - 1].S[i] * (double)(kj / Tj) > soglia) { //se sotto soglia inutile calcolarlo
+                prob_richiesta_di_i_assegnata_a_j.push_back(trust_model(i));//passo indice id_amico di j
+            }
+            else
+                prob_richiesta_di_i_assegnata_a_j.push_back(0);
+        }    
+        else
+            prob_richiesta_di_i_assegnata_a_j.push_back(0);
         lambda_provider = lambda_provider + (lambda_ij * prob_richiesta_di_i_assegnata_a_j[i]);
     }
-    
-
     return lambda_provider;
 }
 
@@ -313,24 +305,21 @@ double trust_model(int id_amico_di_j) {
     int amico_di_i = 0; // da verificare
     double lambda_k = 0;
     double lambda_k2 = 0;
-
-    
     int i;
     int j;
     int j2;
 
     for (i = 0; i < Number_of_nodes; i++)
     {
-        if (topologia[id_amico_di_j - 1].S[i] > 0) {//controllare che non sia id nodo j
-           // if(topologia[id_amico_di_j - 1].S[i] != id_nodo_j)
-                amici_di_i.push_back(topologia[id_amico_di_j - 1].S[i]);
+        if (topologia[id_amico_di_j].S[i] > 0 && id_amico_di_j != (id_nodo_j-1)) { 
+               indici_amici_di_i.push_back(i);
         }
     }
             
-    for (i = 0; i < amici_di_i.size(); i++) {
+    for (i = 0; i < topologia[id_amico_di_j].get_num_amici()-1; i++) {
         if (i == 0) {
            probabilità_congiunta_k1 = 1;
-           prob_amico_piu_trusted_di_j = prob_binomiale(amici_di_i, id_amico_di_j);// ,passare lo stato di j)
+           prob_amico_piu_trusted_di_j = prob_binomiale(indici_amici_di_i, id_amico_di_j);
         }
         else if(i ==1) {
             //to check here 
@@ -343,6 +332,8 @@ double trust_model(int id_amico_di_j) {
                 //valore_controllo_trust = valore_controllo_trust + (probabilità_congiunta_k1 * prob_amico_piu_trusted_di_j);
             }
         }
+        /*
+        * caso uguale 2 solo se strettamente necessario
         else if (i == 2) {
             //to check here se posso fermarmi a due
             for (j = 0; j < amici_di_i.size(); j++) {
@@ -364,14 +355,9 @@ double trust_model(int id_amico_di_j) {
                 }
 
             }
-            
-            
-            
-            
+                      
         }
-
-
-     
+        */
     }
 
     return valore_controllo_trust;
