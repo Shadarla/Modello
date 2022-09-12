@@ -280,7 +280,7 @@ double calcolo_lambda_j() {
   
     for (i = 0; i < Number_of_nodes; i++) {
         // dopo teorema delle prob totali sul numero di amici di i piu trusted di j
-        if (topologia[id_nodo_j - 1].S[i] > 0) {
+        if (topologia[id_nodo_j - 1].S[i] > 0) {  
             if (topologia[id_nodo_j - 1].S[i] * (double)(kj / Tj) > soglia) { //se sotto soglia inutile calcolarlo
                 prob_richiesta_di_i_assegnata_a_j.push_back(trust_model(i));//passo indice id_amico di j
             }
@@ -297,7 +297,7 @@ double calcolo_lambda_j() {
 double trust_model(int id_amico_di_j) {
     double valore_controllo_trust = 0;
     double probabilità_congiunta_k1 = 0;
-    double probabilità_congiunta_k2 = 0;
+    //double probabilità_congiunta_k2 = 0;
     double prodotto_prob_congiuta = 0;
     double prob_amico_piu_trusted_di_j = 1;
     double prob_amico_piu_trusted_di_j2 = 1;
@@ -319,21 +319,21 @@ double trust_model(int id_amico_di_j) {
     for (i = 0; i < topologia[id_amico_di_j].get_num_amici()-1; i++) {
         if (i == 0) {
            probabilità_congiunta_k1 = 1;
-           prob_amico_piu_trusted_di_j = prob_binomiale(indici_amici_di_i, id_amico_di_j);
+           prob_amico_piu_trusted_di_j = prob_binomiale(indici_amici_di_i, id_amico_di_j); //to check prob binomiale
+           valore_controllo_trust = probabilità_congiunta_k1 * prob_amico_piu_trusted_di_j;
         }
         else if(i ==1) {
-            //to check here 
-            for (j = 0; j < amici_di_i.size(); j++) {
-                //ricordarsi di controllare di escludere j dagli amici di i possibili piu trusted di j
-                lambda_k = calcolo_lambda_k(amici_di_i[j]);
-                probabilità_congiunta_k1 = lambda_k;
-                //prob_amico_piu_trusted_di_j da calcolare calcolo di prob binomiale
-                //prob_amico_piu_trusted_di_j
-                //valore_controllo_trust = valore_controllo_trust + (probabilità_congiunta_k1 * prob_amico_piu_trusted_di_j);
+            // lo scopo ora è quello di controllare chi degli amici di i è piu trusted di j, ma sappiamo che è solo 1.
+            for (j = 0; j < indici_amici_di_i.size(); j++) {
+                // equivale a dire che il k in questione non ha le risorse disponibili
+                lambda_k = calcolo_lambda_k(indici_amici_di_i[j]);  //to check: calcolo lambda k
+                probabilità_congiunta_k1 = lambda_k; //to check: questo sarà uguale alla prob di blocco di lambda k
+                //prob_amico_piu_trusted_di_j= ...   to check: prob_amico_piu_trusted_di_j da calcolare calcolo di doppia prob binomiale
+                valore_controllo_trust = valore_controllo_trust + (probabilità_congiunta_k1 * prob_amico_piu_trusted_di_j);
             }
         }
         /*
-        * caso uguale 2 solo se strettamente necessario
+        caso uguale 2 solo se strettamente necessario
         else if (i == 2) {
             //to check here se posso fermarmi a due
             for (j = 0; j < amici_di_i.size(); j++) {
