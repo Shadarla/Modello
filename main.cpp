@@ -21,7 +21,9 @@ double loss_probability();
 double prob_blocco(int index);
 double factorial(int n);
 double prob_binomiale(vector<int> amici_di_i, int id_amico_j);
+double prob_binomiale(vector<int> amici_di_i, int id_amico_j, int j);
 int proporzionalita_tk(specifiche_nodo km);
+double prob_di_blocco_generica(specifiche_nodo km, double lambda_k);
 
 int kj = 18;
 int Tj = 20;
@@ -157,6 +159,7 @@ int main() {
     specifiche_nodo reset;
     double variabile_appoggio = 0;
     string path = "SocialMatrix.txt";
+    string path2 = "User_Info.txt";
     int contatore_amici = 0;
     string line;
     int social_index = 0;
@@ -164,6 +167,7 @@ int main() {
     //SETTO LA TOPOLOGIA
 
     ifstream sim_file(path);
+    ifstream sim_file_secondo(path2); //per benevolo malevolo e classe dispositivi
     for (indice_topologia = 0; indice_topologia < Number_of_nodes; indice_topologia++) {
         //leggere dato da file e mettere in appoggio
         
@@ -186,11 +190,14 @@ int main() {
         nodo_di_appoggio.set_num_amici(contatore_amici);
         contatore_amici = 0;
 
-        nodo_di_appoggio.set_type(0); //andrebbe preso anche questo dal simulatore
-        nodo_di_appoggio.set_probabilità_feedback_positivo(nodo_di_appoggio.get_type());
-        nodo_di_appoggio.set_classe(0); //andrebbe preso anche questo dal simulatore
-        nodo_di_appoggio.set_mu(nodo_di_appoggio.get_classe());
+        if (sim_file_secondo.is_open()){
 
+            getline(sim_file_secondo, );
+            nodo_di_appoggio.set_type(0); //andrebbe preso anche questo dal simulatore
+            nodo_di_appoggio.set_probabilità_feedback_positivo(nodo_di_appoggio.get_type());
+            nodo_di_appoggio.set_classe(0); //andrebbe preso anche questo dal simulatore
+            nodo_di_appoggio.set_mu(nodo_di_appoggio.get_classe());
+        }
         topologia.push_back(nodo_di_appoggio);
         nodo_di_appoggio = reset;
     }
@@ -294,41 +301,62 @@ double calcolo_lambda_j() {
     return lambda_provider;
 }
 
-double trust_model(int id_amico_di_j) {
+double trust_model(int indice_amico_di_j) {
     double valore_controllo_trust = 0;
     double probabilità_congiunta_k1 = 0;
     //double probabilità_congiunta_k2 = 0;
     double prodotto_prob_congiuta = 0;
     double prob_amico_piu_trusted_di_j = 1;
-    double prob_amico_piu_trusted_di_j2 = 1;
+    double prob_amico_piu_trusted_di_j_parziale = 1;
+    //double prob_amico_piu_trusted_di_j2 = 1;
     double prodotto_prob_amico_piu_trusted_di_j = 1;
     int amico_di_i = 0; // da verificare
     double lambda_k = 0;
-    double lambda_k2 = 0;
+    //double lambda_k2 = 0;
     int i;
     int j;
-    int j2;
+    int z;
+    double T_km;
+    int n_index=0;
+    int n_0 = 0;
+    double binomiale = 0;
+   // int j2;
+    specifiche_nodo km;
 
     for (i = 0; i < Number_of_nodes; i++)
     {
-        if (topologia[id_amico_di_j].S[i] > 0 && id_amico_di_j != (id_nodo_j-1)) { 
+        if (topologia[indice_amico_di_j].S[i] > 0 && indice_amico_di_j != (id_nodo_j-1)) { 
                indici_amici_di_i.push_back(i);
         }
     }
             
-    for (i = 0; i < topologia[id_amico_di_j].get_num_amici()-1; i++) {
+    //for (i = 0; i < topologia[indice_amico_di_j].get_num_amici()-1; i++) {
+    for (i = 0; i < 3; i++) {
         if (i == 0) {
            probabilità_congiunta_k1 = 1;
-           prob_amico_piu_trusted_di_j = prob_binomiale(indici_amici_di_i, id_amico_di_j); //to check prob binomiale
+           prob_amico_piu_trusted_di_j = prob_binomiale(indici_amici_di_i, indice_amico_di_j); 
            valore_controllo_trust = probabilità_congiunta_k1 * prob_amico_piu_trusted_di_j;
         }
-        else if(i ==1) {
-            // lo scopo ora è quello di controllare chi degli amici di i è piu trusted di j, ma sappiamo che è solo 1.
+        else if(i == 1) {
             for (j = 0; j < indici_amici_di_i.size(); j++) {
                 // equivale a dire che il k in questione non ha le risorse disponibili
-                lambda_k = calcolo_lambda_k(indici_amici_di_i[j]);  //to check: calcolo lambda k
-                probabilità_congiunta_k1 = lambda_k; //to check: questo sarà uguale alla prob di blocco di lambda k
-                //prob_amico_piu_trusted_di_j= ...   to check: prob_amico_piu_trusted_di_j da calcolare calcolo di doppia prob binomiale
+                lambda_k = calcolo_lambda_k(indici_amici_di_i[j]);  //calcolo lambda k
+                km = topologia[indici_amici_di_i[j]];
+                //calcolo T_km
+                if (km.get_type() == topologia[id_nodo_j - 1].get_type())
+                    T_km = Tj;
+                else {
+                    T_km = proporzionalita_tk(km);
+                }
+                probabilità_congiunta_k1 = prob_di_blocco_generica(km, lambda_k); //questo sarà uguale alla prob di blocco di lambda k
+                n_0 = (topologia[indice_amico_di_j].S[id_nodo_j - 1] * (double)(kj / Tj) * T_km) / km.S[indice_amico_di_j - 1];
+                for (n_index = n_0 + 1; n_index <= T_km; n_index++) {
+                    prob_amico_piu_trusted_di_j_parziale = prob_binomiale(indici_amici_di_i, indice_amico_di_j,j);//to check termini da passare perche devo passare tutto il vettore tranne indici_amici_di_i[j]
+                    binomiale = factorial(T_km) / (factorial(n_index) * factorial(T_km - n_index));//calcolo binomiale tra T_km e n_index;
+                    binomiale = binomiale * pow(km.get_probabilità_feedback_positivo(), n_index) * pow(1 - km.get_probabilità_feedback_positivo(), T_km - n_index);
+                    prob_amico_piu_trusted_di_j_parziale = prob_amico_piu_trusted_di_j_parziale * binomiale;
+                    prob_amico_piu_trusted_di_j = prob_amico_piu_trusted_di_j + prob_amico_piu_trusted_di_j_parziale;
+                }              
                 valore_controllo_trust = valore_controllo_trust + (probabilità_congiunta_k1 * prob_amico_piu_trusted_di_j);
             }
         }
@@ -349,23 +377,17 @@ double trust_model(int id_amico_di_j) {
                         
                         //prodotto_prob_amico_piu_trusted_di_j = prob_amico_piu_trusted_di_j * prob_amico_piu_trusted_di_j2;
                         //valore_controllo_trust = valore_controllo_trust + (prodotto_prob_congiuta * prodotto_prob_amico_piu_trusted_di_j);
-
                     }
-                    
                 }
-
-            }
-                      
+            }               
         }
         */
     }
-
     return valore_controllo_trust;
 }
 
-double prob_binomiale(vector<int> amici_di_i,int id_amico_di_j) {
+double prob_binomiale(vector<int> indici_amici_di_i,int indice_amico_di_j) {
 
-    double valore_probabilità_totale = 1;
     double valore_probabilità_parziale = 1;
     double valore_binomiale_sommatoria_totale = 1;
     double binomiale = 0;
@@ -376,28 +398,68 @@ double prob_binomiale(vector<int> amici_di_i,int id_amico_di_j) {
     int T_km = 0;
     specifiche_nodo km;
 
-    for (i = 0; i < amici_di_i.size(); i++) {
-        id_amico_di_i = amici_di_i[i];
+    for (i = 0; i < indici_amici_di_i.size(); i++) {
+        binomiale = 0;
+        valore_binomiale_sommatoria_totale = 0;
+        id_amico_di_i = indici_amici_di_i[i];
         km = topologia[id_amico_di_i];
         if (km.get_type() == topologia[id_nodo_j - 1].get_type())
             T_km = Tj;
         else {
-            //formula se non sono dello stesso tipo
+            //to check: formula se non sono dello stesso tipo
             T_km = proporzionalita_tk(km);
         }
         //calcolare n0=(intero piu piccolo Sij*delta j dallo stato*T_km)/Sik;
-        n0 = (topologia[id_amico_di_j-1].S[id_nodo_j-1] * (kj / Tj) * T_km) / km.S[id_amico_di_j - 1];
+        n0 = (topologia[indice_amico_di_j].S[id_nodo_j-1] * (double)(kj / Tj) * T_km) / km.S[indice_amico_di_j - 1];
         for (n_index = 0; n_index < n0; n_index++)
         {
             binomiale = factorial(T_km)/ (factorial(n_index) * factorial(T_km- n_index));//calcolo binomiale tra T_km e n_index;
             binomiale = binomiale * pow(km.get_probabilità_feedback_positivo(),n_index) * pow(1 - km.get_probabilità_feedback_positivo(), T_km - n_index);
             valore_binomiale_sommatoria_totale = valore_binomiale_sommatoria_totale + binomiale;
-
         }
         valore_probabilità_parziale = valore_probabilità_parziale * valore_binomiale_sommatoria_totale;
     }
 
-    return valore_probabilità_totale;
+    return valore_probabilità_parziale;
+}
+
+double prob_binomiale(vector<int> indici_amici_di_i, int indice_amico_di_j, int indice_saltare) {
+
+    double valore_probabilità_parziale = 1;
+    double valore_binomiale_sommatoria_totale = 1;
+    double binomiale = 0;
+    int i = 0;
+    int n_index = 0;
+    int n0 = 0;
+    int id_amico_di_i = 0;
+    int T_km = 0;
+    specifiche_nodo km;
+
+    for (i = 0; i < indici_amici_di_i.size(); i++) {
+        if(i != indice_saltare){
+            binomiale = 0;
+            valore_binomiale_sommatoria_totale = 0;
+            id_amico_di_i = indici_amici_di_i[i];
+            km = topologia[id_amico_di_i];
+            if (km.get_type() == topologia[id_nodo_j - 1].get_type())
+                T_km = Tj;
+            else {
+                //to check: formula se non sono dello stesso tipo
+                T_km = proporzionalita_tk(km);
+            }
+            //calcolare n0=(intero piu piccolo Sij*delta j dallo stato*T_km)/Sik;
+            n0 = (topologia[indice_amico_di_j].S[id_nodo_j - 1] * (double)(kj / Tj) * T_km) / km.S[indice_amico_di_j - 1];
+            for (n_index = 0; n_index < n0; n_index++)
+            {
+                binomiale = factorial(T_km) / (factorial(n_index) * factorial(T_km - n_index));//calcolo binomiale tra T_km e n_index;
+                binomiale = binomiale * pow(km.get_probabilità_feedback_positivo(), n_index) * pow(1 - km.get_probabilità_feedback_positivo(), T_km - n_index);
+                valore_binomiale_sommatoria_totale = valore_binomiale_sommatoria_totale + binomiale;
+            }
+            valore_probabilità_parziale = valore_probabilità_parziale * valore_binomiale_sommatoria_totale;
+        }
+    }
+
+    return valore_probabilità_parziale;
 }
 
 int proporzionalita_tk(specifiche_nodo km) {
@@ -406,6 +468,30 @@ int proporzionalita_tk(specifiche_nodo km) {
     //recuperare T_j dallo stato
     T_k = (Tj * km.get_probabilità_feedback_positivo() * km.get_num_amici()) / (topologia[id_nodo_j - 1].get_probabilità_feedback_positivo() * topologia[id_nodo_j - 1].get_num_amici());
     return T_k;
+
+}
+
+double prob_di_blocco_generica(specifiche_nodo km, double lambda_k) {
+    double P_B_prima_parte = 1;
+    double P_B_seconda_parte = 1;
+    double P_B_terza_parte = 1;
+    double sommatoria = 0;
+    double risultato_sommatoria = 0;
+
+    P_B_prima_parte = pow((lambda_k / km.get_mu()), (max_allocab_resources));
+    P_B_seconda_parte = 1 / factorial(max_allocab_resources);
+
+
+    int i;
+    for (i = 1; i <= (max_allocab_resources); i++) {
+        sommatoria = pow((lambda_k / km.get_mu()), i) * (1 / factorial(i));
+        risultato_sommatoria = risultato_sommatoria + sommatoria;
+    }
+    P_B_terza_parte = 1 / risultato_sommatoria;
+
+    double P_B = P_B_prima_parte * P_B_seconda_parte * P_B_terza_parte;
+
+    return P_B;
 
 }
 
@@ -509,7 +595,7 @@ double prob_blocco(int index) {
 
 
     int i;
-    for (i = 0; i <= (max_allocab_resources); i++) {
+    for (i = 1; i <= (max_allocab_resources); i++) {
         sommatoria = pow((Lambda[index] / mu[index]), i) * (1 / factorial(i));
         risultato_sommatoria = risultato_sommatoria + sommatoria;
     }
