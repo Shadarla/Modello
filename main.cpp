@@ -10,59 +10,20 @@ using namespace std;
 #include <sstream>
 
 
-//C:\Users\gianc\Documents\GitHub\SSIoT\Sim - n_services_1 - n_devices_25 - n_master_1 - lambda_10.000000 - tot_sim_500 - seed_3 - resource_ctrl_1 - qoe_ctrl_1
-
-double state_probability (int i, int j, int k);
-double calcolo_lambda_j();
-double trust_model(int id_amico_di_j);
-void calcolo_denominatore_lambda_k();
-double calcolo_lambda_k(int id_nodo_k);
-double loss_probability();
-double prob_blocco(int index);
-double factorial(int n);
-double prob_binomiale(vector<int> amici_di_i, int id_amico_j);
-double prob_binomiale(vector<int> amici_di_i, int id_amico_j, int j);
-int proporzionalita_tk(specifiche_nodo km);
-double prob_di_blocco_generica(specifiche_nodo km, double lambda_k);
-
-int kj = 18;
-int Tj = 20;
-int nj = 0;
-const int Number_of_nodes = 25;
-const double lambda = 20;
-const int num_classi_di_servizio = 2;
-const double mu_j = 1.4; //verifica (potrebbe anche non servire piu)
-const bool type_of_node = 0; //0 per benevolo, 1 per malevolo (potrebbe anche non servire piu)
-const int max_allocab_resources = 2;
-const int max_passo = Tj+7; //esiste una formuletta per calcolarlo
-const int num_amici = 13; // supposto uguale per tutti (to check per caso non omogeneo e potrebbe non servire piu)
-double denominatore_lambda_k = 0; // non varia mai
-const int id_nodo_j = 1; //id del nodo da valutare
-const double lambda_ij = (lambda / Number_of_nodes); //essendo omogenea la distribuzione al momento è uguale per tutti
-const double soglia = 0.03;
-
-
-//vettori per prob blocco
-vector<double> mu;
-vector<double> num_amici_per_classe;
-vector<double> array_prob_blocco_per_classe;
-vector<double> Lambda;
-
-
 class specifiche_nodo
 {
 private:
     int id_nodo;
     int num_amici;
-    int classe; 
+    int classe;
     double mu;
     bool type_of_node;
     double probabilita_feedback_positivo;
-     
+
 public:
     vector<double> S; //social factor
     specifiche_nodo();
-   
+
 
     void set_id_nodo(int id) {
         id_nodo = id;
@@ -102,7 +63,7 @@ public:
     double get_probabilità_feedback_positivo() {
         return this->probabilita_feedback_positivo;
     }
-   
+
     void set_classe(int classe_disp) {
         classe = classe_disp;
     }
@@ -143,6 +104,47 @@ specifiche_nodo::specifiche_nodo() {
     this->probabilita_feedback_positivo = 0;
 }
 
+//C:\Users\gianc\Documents\GitHub\SSIoT\Sim - n_services_1 - n_devices_25 - n_master_1 - lambda_10.000000 - tot_sim_500 - seed_3 - resource_ctrl_1 - qoe_ctrl_1
+
+double state_probability (int i, int j, int k);
+double calcolo_lambda_j();
+double trust_model(int id_amico_di_j);
+void calcolo_denominatore_lambda_k();
+double calcolo_lambda_k(int id_nodo_k);
+double loss_probability();
+double prob_blocco(int index);
+double factorial(int n);
+double prob_binomiale(vector<int> amici_di_i, int id_amico_j);
+double prob_binomiale(vector<int> amici_di_i, int id_amico_j, int j);
+int proporzionalita_tk(specifiche_nodo km);
+double prob_di_blocco_generica(specifiche_nodo km, double lambda_k);
+
+int kj = 18;
+int Tj = 20;
+int nj = 0;
+const int Number_of_nodes = 25;
+const double lambda = 20;
+const int num_classi_di_servizio = 2;
+const double mu_j = 1.4; //verifica (potrebbe anche non servire piu)
+const bool type_of_node = 0; //0 per benevolo, 1 per malevolo (potrebbe anche non servire piu)
+const int max_allocab_resources = 2;
+const int max_passo = Tj+7; //esiste una formuletta per calcolarlo
+const int num_amici = 13; // supposto uguale per tutti (to check per caso non omogeneo e potrebbe non servire piu)
+double denominatore_lambda_k = 0; // non varia mai
+const int id_nodo_j = 1; //id del nodo da valutare
+const double lambda_ij = (lambda / Number_of_nodes); //essendo omogenea la distribuzione al momento è uguale per tutti
+const double soglia = 0.48;
+
+
+//vettori per prob blocco
+vector<double> mu;
+vector<double> num_amici_per_classe;
+vector<double> array_prob_blocco_per_classe;
+vector<double> Lambda;
+
+
+
+
 vector<specifiche_nodo> topologia;
 vector<int> indici_amici_di_i;
 
@@ -151,20 +153,23 @@ map<tuple<int, int, int>, double> mapOfTuple;
 
 int main() {
     //cosa voglio eseguire?
-    int flag_prob_stato = 0;
+    int flag_prob_stato = 1;
     int flag_prob_perdita = 0;
 
     int indice_topologia = 0; //indice per il vettore di classi
     specifiche_nodo nodo_di_appoggio;
     specifiche_nodo reset;
     double variabile_appoggio = 0;
+    int variabile_appoggio_per_quel_fallito_di_antonio = 0;
+    float appoggio_double=0;
     string path = "SocialMatrix.txt";
-    string path2 = "User_Info.txt";
+    string path2 = "1.UserInfo.txt";
     int contatore_amici = 0;
     string line;
+    string line2;
     int social_index = 0;
 
-    //SETTO LA TOPOLOGIA
+    //********SETTO LA TOPOLOGIA*************//
 
     ifstream sim_file(path);
     ifstream sim_file_secondo(path2); //per benevolo malevolo e classe dispositivi
@@ -191,17 +196,46 @@ int main() {
         contatore_amici = 0;
 
         if (sim_file_secondo.is_open()){
-
-            getline(sim_file_secondo, );
-            nodo_di_appoggio.set_type(0); //andrebbe preso anche questo dal simulatore
+            if (indice_topologia == 0) {
+                getline(sim_file_secondo, line2);
+            }
+            getline(sim_file_secondo, line2);
+            istringstream iss2(line2);
+            for (int ind_ciclo = 0; ind_ciclo < 9; ind_ciclo++) {
+                if (ind_ciclo == 6 || ind_ciclo == 7) {
+                    iss2 >> appoggio_double;
+                    //cout << appoggio_double << endl;
+                }
+                else {
+                    iss2 >> variabile_appoggio_per_quel_fallito_di_antonio;
+                    //cout << variabile_appoggio_per_quel_fallito_di_antonio << endl;
+                    if (ind_ciclo == 4) {
+                        //cout << variabile_appoggio_per_quel_fallito_di_antonio << endl;
+                        if (variabile_appoggio_per_quel_fallito_di_antonio == 3)
+                            variabile_appoggio_per_quel_fallito_di_antonio = 0;
+                        else if (variabile_appoggio_per_quel_fallito_di_antonio == 2)
+                            variabile_appoggio_per_quel_fallito_di_antonio = 1;
+                        else if (variabile_appoggio_per_quel_fallito_di_antonio == 1)
+                            variabile_appoggio_per_quel_fallito_di_antonio = 2;
+                        //cout << variabile_appoggio_per_quel_fallito_di_antonio << endl;
+                        nodo_di_appoggio.set_classe(variabile_appoggio_per_quel_fallito_di_antonio); 
+                    }
+                    if (ind_ciclo == 8) {
+                        //cout << variabile_appoggio_per_quel_fallito_di_antonio << endl;
+                        nodo_di_appoggio.set_type(variabile_appoggio_per_quel_fallito_di_antonio); 
+                    }
+                }
+            }
             nodo_di_appoggio.set_probabilità_feedback_positivo(nodo_di_appoggio.get_type());
-            nodo_di_appoggio.set_classe(0); //andrebbe preso anche questo dal simulatore
             nodo_di_appoggio.set_mu(nodo_di_appoggio.get_classe());
         }
         topologia.push_back(nodo_di_appoggio);
         nodo_di_appoggio = reset;
     }
     sim_file.close();
+    sim_file_secondo.close();
+
+    //************CALCOLO PROBABILITA' DI STATO**************//
 
     if (flag_prob_stato){
     
@@ -242,17 +276,21 @@ int main() {
     return 0;
 }
 
-double state_probability(int kj, int Tj, int nj) {
+double state_probability(int kj, int Tj, int nj) { //forse non serve passare i tre parametri (var globale)
    
-    double probabilita = 0;
+    double probabilita = 0; //variabile da ritornare
     double lambda_j = calcolo_lambda_j();
-    
+    //double lambda_j = 1;
    
     //controllo sullo stato attraverso map
 
     double prob_prima_parte = 0;
     if (nj - 1 >= 0){
-        prob_prima_parte = mapOfTuple[make_tuple(kj, Tj, nj - 1)] * lambda_j / (lambda_j + (nj - 1) * topologia[id_nodo_j-1].get_mu());
+       // cout << endl << (lambda_j + (nj - 1)) << endl;
+        if (lambda_j == 0)
+            prob_prima_parte = 0;
+        else
+            prob_prima_parte = mapOfTuple[make_tuple(kj, Tj, nj - 1)] * lambda_j / (lambda_j + (nj - 1) * topologia[id_nodo_j-1].get_mu());
     }
     else{
         prob_prima_parte = 0;
@@ -261,8 +299,36 @@ double state_probability(int kj, int Tj, int nj) {
     double prob_seconda_parte = mapOfTuple[make_tuple(kj, Tj-1, nj+1)] * ((nj + 1) * topologia[id_nodo_j-1].get_mu() * (1-topologia[id_nodo_j - 1].get_probabilità_feedback_positivo())) / (lambda_j + (nj + 1) * topologia[id_nodo_j-1].get_mu());
     double prob_terza_parte = mapOfTuple[make_tuple(kj-1, Tj-1, nj+1)] * ((nj + 1) * topologia[id_nodo_j-1].get_mu() * topologia[id_nodo_j - 1].get_probabilità_feedback_positivo()) / (lambda_j + (nj + 1) * topologia[id_nodo_j-1].get_mu());
 
+    //cout << endl << prob_prima_parte << " + " << prob_seconda_parte << " + " << prob_terza_parte << endl;
+
     probabilita = prob_prima_parte + prob_seconda_parte + prob_terza_parte;
     return probabilita;
+}
+
+double calcolo_lambda_j() {
+    
+    double lambda_provider = 0;  //lambda_j risultato da ritornare
+    double prob_richiesta_di_i_assegnata_a_j;
+
+    int i;
+
+    for (i = 0; i < Number_of_nodes; i++) {
+        // dopo teorema delle prob totali sul numero di amici di i piu trusted di j
+        //if (topologia[id_nodo_j - 1].S[i] > 0) {
+        if (topologia[id_nodo_j - 1].S[i] * ((double)kj / (double)Tj) >= soglia) { //se sotto soglia inutile calcolarlo
+            // cout << (topologia[id_nodo_j - 1].S[i]) * ((double)kj / (double)Tj) << endl;
+            prob_richiesta_di_i_assegnata_a_j = trust_model(i);//passo indice id_amico di j soprasoglia
+            //prob_richiesta_di_i_assegnata_a_j = 0.5;//rigo di prova per debuggare
+        }
+        else
+            prob_richiesta_di_i_assegnata_a_j = 0;
+        //}
+        //else
+        //    prob_richiesta_di_i_assegnata_a_j.push_back(0);
+        lambda_provider = lambda_provider + (lambda_ij * prob_richiesta_di_i_assegnata_a_j);
+    }
+    //cout << endl << lambda_provider << endl;
+    return lambda_provider;
 }
 
 void calcolo_denominatore_lambda_k() {
@@ -279,28 +345,6 @@ double calcolo_lambda_k(int id_nodo_k) {
     return lambda_k;
 }
 
-double calcolo_lambda_j() {
-    double lambda_provider = 0;  //lambda_j risultato da ritornare
-    vector<double> prob_richiesta_di_i_assegnata_a_j;
-    
-    int i;
-  
-    for (i = 0; i < Number_of_nodes; i++) {
-        // dopo teorema delle prob totali sul numero di amici di i piu trusted di j
-        if (topologia[id_nodo_j - 1].S[i] > 0) {  
-            if (topologia[id_nodo_j - 1].S[i] * (double)(kj / Tj) > soglia) { //se sotto soglia inutile calcolarlo
-                prob_richiesta_di_i_assegnata_a_j.push_back(trust_model(i));//passo indice id_amico di j
-            }
-            else
-                prob_richiesta_di_i_assegnata_a_j.push_back(0);
-        }    
-        else
-            prob_richiesta_di_i_assegnata_a_j.push_back(0);
-        lambda_provider = lambda_provider + (lambda_ij * prob_richiesta_di_i_assegnata_a_j[i]);
-    }
-    return lambda_provider;
-}
-
 double trust_model(int indice_amico_di_j) {
     double valore_controllo_trust = 0;
     double probabilità_congiunta_k1 = 0;
@@ -315,7 +359,6 @@ double trust_model(int indice_amico_di_j) {
     //double lambda_k2 = 0;
     int i;
     int j;
-    int z;
     double T_km;
     int n_index=0;
     int n_0 = 0;
