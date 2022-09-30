@@ -385,18 +385,20 @@ double trust_model(int indice_amico_di_j) {
                 }
                 probabilità_congiunta_k1 = prob_di_blocco_generica(km, lambda_k); //questo sarà uguale alla prob di blocco di lambda k
                 //probabilità_congiunta_k1 = 1;//DEBUG -- CORRETTO
-                n_0 = (topologia[indice_amico_di_j].S[id_nodo_j - 1] * (double)(kj / Tj) * T_km) / km.S[indice_amico_di_j - 1];//TO CHECK
+                n_0 = (topologia[id_nodo_j - 1].S[indice_amico_di_j] * ((double)kj / (double)Tj) * T_km) / km.S[indice_amico_di_j];
+                //cout << km.S[indice_amico_di_j] << endl;
                 //cout << n_0 << endl;
-                /* DA ERRORE DA CONTROLLARE
+                // DA ERRORE DA CONTROLLARE
                 for (n_index = n_0 + 1; n_index <= T_km; n_index++) {
                     prob_amico_piu_trusted_di_j_parziale = prob_binomiale(indici_amici_di_i, indice_amico_di_j, j);//to check termini da passare perche devo passare tutto il vettore tranne indici_amici_di_i[j]
+                    //prob_amico_piu_trusted_di_j_parziale = 0.5; //DEBUG
                     binomiale = factorial(T_km) / (factorial(n_index) * factorial(T_km - n_index));//calcolo binomiale tra T_km e n_index;
                     binomiale = binomiale * pow(km.get_probabilità_feedback_positivo(), n_index) * pow(1 - km.get_probabilità_feedback_positivo(), T_km - n_index);
                     prob_amico_piu_trusted_di_j_parziale = prob_amico_piu_trusted_di_j_parziale * binomiale;
                     prob_amico_piu_trusted_di_j = prob_amico_piu_trusted_di_j + prob_amico_piu_trusted_di_j_parziale;
                 }
-                */
-                prob_amico_piu_trusted_di_j = 0.5; //DEBUG
+                
+                // prob_amico_piu_trusted_di_j = 0.5; //DEBUG
                 valore_controllo_trust = valore_controllo_trust + (probabilità_congiunta_k1 * prob_amico_piu_trusted_di_j);
             }
         }
@@ -463,7 +465,7 @@ double prob_binomiale(vector<int> indici_amici_di_i,int indice_amico_di_j) {
             T_km = proporzionalita_tk(km);
         }
         //calcolare n0=(intero piu piccolo Sij*delta j dallo stato*T_km)/Sik;
-        n0 = (topologia[id_nodo_j-1].S[indice_amico_di_j] * (double)(kj / Tj) * T_km) / km.S[indice_amico_di_j];
+        n0 = (topologia[id_nodo_j-1].S[indice_amico_di_j] * ((double)kj / (double)Tj) * T_km) / km.S[indice_amico_di_j];
 
         for (n_index = 0; n_index < n0; n_index++)
         {
@@ -480,7 +482,7 @@ double prob_binomiale(vector<int> indici_amici_di_i,int indice_amico_di_j) {
 double prob_binomiale(vector<int> indici_amici_di_i, int indice_amico_di_j, int indice_saltare) {
 
     double valore_probabilità_parziale = 1;
-    double valore_binomiale_sommatoria_totale = 1;
+    double valore_binomiale_sommatoria_totale = 0;
     double binomiale = 0;
     int i = 0;
     int n_index = 0;
@@ -502,7 +504,7 @@ double prob_binomiale(vector<int> indici_amici_di_i, int indice_amico_di_j, int 
                 T_km = proporzionalita_tk(km);
             }
             //calcolare n0=(intero piu piccolo Sij*delta j dallo stato*T_km)/Sik;
-            n0 = (topologia[indice_amico_di_j].S[id_nodo_j - 1] * (double)(kj / Tj) * T_km) / km.S[indice_amico_di_j - 1];
+            n0 = (topologia[indice_amico_di_j].S[id_nodo_j - 1] * ((double)kj / (double)Tj) * T_km) / km.S[indice_amico_di_j];
             for (n_index = 0; n_index < n0; n_index++)
             {
                 binomiale = factorial(T_km) / (factorial(n_index) * factorial(T_km - n_index));//calcolo binomiale tra T_km e n_index;
