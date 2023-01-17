@@ -19,6 +19,7 @@ private:
     double mu;
     bool type_of_node;
     double probabilita_feedback_positivo;
+    double max_allocable_res;
 
 public:
     vector<double> S; //social factor
@@ -92,6 +93,26 @@ public:
     double get_mu() {
         return this->mu;
     }
+
+    void set_maxallocableres(int classe_disp) {
+        if (classe_disp == 0) {
+            //classe piu alta
+            max_allocable_res = 3;
+        }
+        else if (classe_disp == 1) {
+            //classe media
+            max_allocable_res = 2;
+        }
+        else if (classe_disp == 2) {
+            //classe peggiore
+            max_allocable_res = 1;
+        }
+
+    }
+
+    double get_maxallocableres() {
+        return this->max_allocable_res;
+    }
 };
 
 //costruttore
@@ -102,6 +123,7 @@ specifiche_nodo::specifiche_nodo() {
     this->mu = 0;
     this->type_of_node = 0;
     this->probabilita_feedback_positivo = 0;
+    this->max_allocable_res = 0;
 }
 
 //C:\Users\gianc\Documents\GitHub\SSIoT\Sim - n_services_1 - n_devices_25 - n_master_1 - lambda_10.000000 - tot_sim_500 - seed_3 - resource_ctrl_1 - qoe_ctrl_1
@@ -109,7 +131,7 @@ specifiche_nodo::specifiche_nodo() {
 double state_probability (int i, int j, int k);
 double calcolo_lambda_j();
 double trust_model(int id_amico_di_j);
-void calcolo_denominatore_lambda_k();
+//void calcolo_denominatore_lambda_k();
 double calcolo_lambda_k(int id_nodo_k);
 double loss_probability();
 double prob_blocco(int index);
@@ -132,7 +154,7 @@ const int max_passo = Tj+7; //esiste una formuletta per calcolarlo
 const int num_amici = 13; // supposto uguale per tutti (to check per caso non omogeneo e potrebbe non servire piu)
 double denominatore_lambda_k = 0; // non varia mai
 const int id_nodo_j = 1; //id del nodo da valutare
-const double lambda_ij = (lambda / Number_of_nodes); //essendo omogenea la distribuzione al momento è uguale per tutti
+const double lambda_i = (lambda / Number_of_nodes); //essendo omogenea la distribuzione al momento è uguale per tutti
 const double soglia = 0.48;
 
 
@@ -228,6 +250,7 @@ int main() {
             }
             nodo_di_appoggio.set_probabilità_feedback_positivo(nodo_di_appoggio.get_type());
             nodo_di_appoggio.set_mu(nodo_di_appoggio.get_classe());
+            nodo_di_appoggio.set_maxallocableres(nodo_di_appoggio.get_classe());
         }
         topologia.push_back(nodo_di_appoggio);
         nodo_di_appoggio = reset;
@@ -243,7 +266,7 @@ int main() {
         double P = 1;
         mapOfTuple[stato] = P;
 
-        calcolo_denominatore_lambda_k();
+        //calcolo_denominatore_lambda_k(); da aggiungere a lambdak
 
         std::cout << "Stato: (" << kj << "," << Tj << "," << nj << ") Probabilita' di stato: " << P << endl;
         // int estract = mapOfTuple[make_tuple(i,j,k)];
@@ -315,7 +338,7 @@ double calcolo_lambda_j() {
     for (i = 0; i < Number_of_nodes; i++) {
         // dopo teorema delle prob totali sul numero di amici di i piu trusted di j
         //if (topologia[id_nodo_j - 1].S[i] > 0) {
-        if (topologia[id_nodo_j - 1].S[i] * ((double)kj / (double)Tj) >= soglia) { //se sotto soglia inutile calcolarlo
+        if (topologia[id_nodo_j - 1].S[i] * ((double)kj / (double)Tj) >= soglia) { //se trust sotto soglia inutile calcolarlo
             // cout << (topologia[id_nodo_j - 1].S[i]) * ((double)kj / (double)Tj) << endl;
             prob_richiesta_di_i_assegnata_a_j = trust_model(i);//passo indice id_amico di j soprasoglia
             //prob_richiesta_di_i_assegnata_a_j = 0.5;//rigo di prova per debuggare
@@ -325,19 +348,22 @@ double calcolo_lambda_j() {
         //}
         //else
         //    prob_richiesta_di_i_assegnata_a_j.push_back(0);
-        lambda_provider = lambda_provider + (lambda_ij * prob_richiesta_di_i_assegnata_a_j);
+        lambda_provider = lambda_provider + (lambda_i * prob_richiesta_di_i_assegnata_a_j);
     }
     //cout << endl << lambda_provider << endl;
     return lambda_provider;
 }
 
 
-double trust_model(int indice_amico_di_j) {
+double trust_model(int indice_amico_di_j) { 
+    //sto passando l'indice i di tutti i nodi che scorro nel for, in particolare quelli che sono amici soprasoglia di j
     double valore_controllo_trust = 0;
-    double probabilità_congiunta_k1 = 0;
+    //double probabilità_congiunta_k1 = 0;
+    double teta = 0;
     //double probabilità_congiunta_k2 = 0;
     double prodotto_prob_congiuta = 0;
-    double prob_amico_piu_trusted_di_j = 1;
+    //double prob_amico_piu_trusted_di_j = 1;
+    double omega = 1;
     double prob_amico_piu_trusted_di_j_parziale = 1;
     //double prob_amico_piu_trusted_di_j2 = 1;
     double prodotto_prob_amico_piu_trusted_di_j = 1;
@@ -356,24 +382,68 @@ double trust_model(int indice_amico_di_j) {
 
     for (i = 0; i < Number_of_nodes; i++)
     {
+        //per ogni amico di j che chiamo i, mi salvo a sua volta i suoi amici in un vettore
         if (topologia[indice_amico_di_j].S[i] > 0 && indice_amico_di_j != (id_nodo_j - 1)) {
             indici_amici_di_i.push_back(i);
         }
     }
 
-
-    //CONFRONTO AMICI DI I PIU TRUSTED DI J
+    //CONFRONTO CHE PER I, I SUOI AMICI SIANO O MENO PIU TRUSTED DI J
     //for (i = 0; i < topologia[indice_amico_di_j].get_num_amici()-1; i++) {
     for (i = 0; i < 3; i++) {
         if (i == 0) {
-            probabilità_congiunta_k1 = 1;
+            teta = 1;
+            omega = 0;
+            //probabilità_congiunta_k1 = 1;
             //prob_amico_piu_trusted_di_j = 0.5;//DEBUG
-            prob_amico_piu_trusted_di_j = prob_binomiale(indici_amici_di_i, indice_amico_di_j); //CONTROLLATA DOVREBBE STARE BENE
-            valore_controllo_trust = probabilità_congiunta_k1 * prob_amico_piu_trusted_di_j;
+            omega = prob_binomiale(indici_amici_di_i, indice_amico_di_j); //CONTROLLATA DOVREBBE STARE BENE
+            valore_controllo_trust = teta * omega;
+            //valore_controllo_trust = probabilità_congiunta_k1 * prob_amico_piu_trusted_di_j;
         }
-        else if (i == 1) {//RIPRENDERE DA QUI!!
+        else if (i == 1) {
+            omega = 0;
             for (int j = 0; j < indici_amici_di_i.size(); j++) {
-                // equivale a dire che il k in questione non ha le risorse disponibili
+                //equivale a dire che il k in questione non ha le risorse disponibili
+                //lambda_k = calcolo_lambda_k(indici_amici_di_i[j]);  //calcolo lambda k--QUESTA DA ERRORE
+                lambda_k = lambda_i/5;//DEBUG
+                km = topologia[indici_amici_di_i[j]];
+                //calcolo T_km
+                if (km.get_type() == topologia[id_nodo_j - 1].get_type())
+                    T_km = Tj;
+                else {
+                    T_km = proporzionalita_tk(km);
+                }
+                //probabilità_congiunta_k1 = prob_di_blocco_generica(km, lambda_k); //questo sarà uguale alla prob di blocco di lambda k
+                teta = prob_di_blocco_generica(km, lambda_k); //questo sarà uguale alla prob di blocco di lambda k
+                //probabilità_congiunta_k1 = 1;//DEBUG -- CORRETTO
+                
+                n_0 = (topologia[id_nodo_j - 1].S[indice_amico_di_j] * ((double)kj / (double)Tj) * T_km) / km.S[indice_amico_di_j];
+                //cout << km.S[indice_amico_di_j] << endl;
+                //cout << n_0 << endl;
+                // DA ERRORE DA CONTROLLARE
+                for (n_index = n_0 + 1; n_index <= T_km; n_index++) {
+                    //questa vorrebbe essere produttoria di sommatoria di elementi
+                    prob_amico_piu_trusted_di_j_parziale = prob_binomiale(indici_amici_di_i, indice_amico_di_j, j);//to check termini da passare perche devo passare tutto il vettore tranne indici_amici_di_i[j]
+                    //calcolo binomiale tra T_km e n_index;
+                    binomiale = factorial(T_km) / (factorial(n_index) * factorial(T_km - n_index));
+                    binomiale = binomiale * pow(km.get_probabilità_feedback_positivo(), n_index) * pow(1 - km.get_probabilità_feedback_positivo(), T_km - n_index);
+                    prob_amico_piu_trusted_di_j_parziale = prob_amico_piu_trusted_di_j_parziale * binomiale;
+                    //prob_amico_piu_trusted_di_j = prob_amico_piu_trusted_di_j + prob_amico_piu_trusted_di_j_parziale;
+                    omega = omega + prob_amico_piu_trusted_di_j_parziale;
+                }
+                
+                // prob_amico_piu_trusted_di_j = 0.5; //DEBUG
+                //valore_controllo_trust = valore_controllo_trust + (probabilità_congiunta_k1 * prob_amico_piu_trusted_di_j);
+                valore_controllo_trust = valore_controllo_trust + (teta * omega);
+            }
+        }
+
+        /*
+        //QUESTA è UNA PROVA SOLO PER VEDERE SE PER PSI=2 CAMBIA DI MOLTO LA SITUA
+        else if (i == 2) {
+            omega = 0;
+            for (int j = 0; j < indici_amici_di_i.size(); j++) {
+                //equivale a dire che il k in questione non ha le risorse disponibili
                 //lambda_k = calcolo_lambda_k(indici_amici_di_i[j]);  //calcolo lambda k--QUESTA DA ERRORE
                 lambda_k = 1;//DEBUG
                 km = topologia[indici_amici_di_i[j]];
@@ -383,25 +453,32 @@ double trust_model(int indice_amico_di_j) {
                 else {
                     T_km = proporzionalita_tk(km);
                 }
-                probabilità_congiunta_k1 = prob_di_blocco_generica(km, lambda_k); //questo sarà uguale alla prob di blocco di lambda k
+                //probabilità_congiunta_k1 = prob_di_blocco_generica(km, lambda_k); //questo sarà uguale alla prob di blocco di lambda k
+                teta = prob_di_blocco_generica(km, lambda_k); //questo sarà uguale alla prob di blocco di lambda k
                 //probabilità_congiunta_k1 = 1;//DEBUG -- CORRETTO
+                
                 n_0 = (topologia[id_nodo_j - 1].S[indice_amico_di_j] * ((double)kj / (double)Tj) * T_km) / km.S[indice_amico_di_j];
                 //cout << km.S[indice_amico_di_j] << endl;
                 //cout << n_0 << endl;
                 // DA ERRORE DA CONTROLLARE
                 for (n_index = n_0 + 1; n_index <= T_km; n_index++) {
+                    //questa vorrebbe essere produttoria di sommatoria di elementi
                     prob_amico_piu_trusted_di_j_parziale = prob_binomiale(indici_amici_di_i, indice_amico_di_j, j);//to check termini da passare perche devo passare tutto il vettore tranne indici_amici_di_i[j]
-                    //prob_amico_piu_trusted_di_j_parziale = 0.5; //DEBUG
-                    binomiale = factorial(T_km) / (factorial(n_index) * factorial(T_km - n_index));//calcolo binomiale tra T_km e n_index;
+                    //calcolo binomiale tra T_km e n_index;
+                    binomiale = factorial(T_km) / (factorial(n_index) * factorial(T_km - n_index));
                     binomiale = binomiale * pow(km.get_probabilità_feedback_positivo(), n_index) * pow(1 - km.get_probabilità_feedback_positivo(), T_km - n_index);
                     prob_amico_piu_trusted_di_j_parziale = prob_amico_piu_trusted_di_j_parziale * binomiale;
-                    prob_amico_piu_trusted_di_j = prob_amico_piu_trusted_di_j + prob_amico_piu_trusted_di_j_parziale;
+                    //prob_amico_piu_trusted_di_j = prob_amico_piu_trusted_di_j + prob_amico_piu_trusted_di_j_parziale;
+                    omega = omega + prob_amico_piu_trusted_di_j_parziale;
                 }
                 
                 // prob_amico_piu_trusted_di_j = 0.5; //DEBUG
-                valore_controllo_trust = valore_controllo_trust + (probabilità_congiunta_k1 * prob_amico_piu_trusted_di_j);
+                //valore_controllo_trust = valore_controllo_trust + (probabilità_congiunta_k1 * prob_amico_piu_trusted_di_j);
+                valore_controllo_trust = valore_controllo_trust + (teta * omega);
             }
         }
+        */
+
         /*
         caso uguale 2 solo se strettamente necessario
         else if (i == 2) {
@@ -428,12 +505,15 @@ double trust_model(int indice_amico_di_j) {
     return valore_controllo_trust;
 }
 
+/*
 void calcolo_denominatore_lambda_k() {
+   
     int i = 0;
     for (i = 0; i < topologia.size(); i++) {
-        denominatore_lambda_k = denominatore_lambda_k + topologia[i].get_probabilità_feedback_positivo() * topologia[i].get_num_amici();
+       denominatore_lambda_k = denominatore_lambda_k + topologia[i].get_probabilità_feedback_positivo() * topologia[i].get_num_amici();
     }
-}
+}*/
+
  
 double calcolo_lambda_k(int id_nodo_k) {
     double lambda_k = 1;
@@ -534,12 +614,12 @@ double prob_di_blocco_generica(specifiche_nodo km, double lambda_k) {
     double sommatoria = 0;
     double risultato_sommatoria = 0;
 
-    P_B_prima_parte = pow((lambda_k / km.get_mu()), (max_allocab_resources));
-    P_B_seconda_parte = 1 / factorial(max_allocab_resources);
+    P_B_prima_parte = pow((lambda_k / km.get_mu()), (km.get_maxallocableres()));
+    P_B_seconda_parte = 1 / factorial(km.get_maxallocableres());
 
 
     int i;
-    for (i = 1; i <= (max_allocab_resources); i++) {
+    for (i = 1; i <= (km.get_maxallocableres()); i++) {
         sommatoria = pow((lambda_k / km.get_mu()), i) * (1 / factorial(i));
         risultato_sommatoria = risultato_sommatoria + sommatoria;
     }
