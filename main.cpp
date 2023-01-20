@@ -126,6 +126,8 @@ specifiche_nodo::specifiche_nodo() {
     this->max_allocable_res = 0;
 }
 
+
+
 //C:\Users\gianc\Documents\GitHub\SSIoT\Sim - n_services_1 - n_devices_25 - n_master_1 - lambda_10.000000 - tot_sim_500 - seed_3 - resource_ctrl_1 - qoe_ctrl_1
 
 double state_probability (int i, int j, int k);
@@ -151,7 +153,7 @@ const bool type_of_node = 0; //0 per benevolo, 1 per malevolo (potrebbe anche no
 const int max_allocab_resources = 2; //(potrebbe anche non servire piu)
 const int max_passo = Tj+7; //esiste una formuletta per calcolarlo
 const int num_amici = 13; // supposto uguale per tutti (to check per caso non omogeneo e potrebbe non servire piu)
-const int id_nodo_j = 1; //id del nodo da valutare
+int id_nodo_j = 1; //id del nodo da valutare
 const double lambda_i = (lambda / Number_of_nodes); //essendo omogenea la distribuzione al momento è uguale per tutti
 const double soglia = 0.48;
 //const double soglia = 0.08;
@@ -174,6 +176,13 @@ vector<specifiche_nodo> topologia;
 tuple <int, int, int> stato;
 map<tuple<int, int, int>, double> mapOfTuple;
 map<tuple<int, int, int>, double> maplambda_j;
+
+struct State {
+    //vector<tuple <int, int, int>> state_param;
+    map<tuple<int, int, int>, double> prob_map_of_tuple;
+};
+
+vector<State> Markov_chain;
 
 int main() {
     //cosa voglio eseguire?
@@ -262,41 +271,59 @@ int main() {
 
     //************CALCOLO PROBABILITA' DI STATO**************//
 
-    if (flag_prob_stato){
-    
-        stato = make_tuple(kj, Tj, nj);
-        double P = 1;
-        mapOfTuple[stato] = P;
-        maplambda_j[stato] = lambda_j;
-        denominatore_lambda_k = topologia[id_nodo_j - 1].get_probabilità_feedback_positivo() * topologia[id_nodo_j - 1].get_num_amici();;
+    if (flag_prob_stato) {
 
-        std::cout << "Stato: (" << kj << "," << Tj << "," << nj << ") Probabilita' di stato: " << P ;
-        std::cout << endl;
-        //std::cout << "lambda_j: " << lambda_j << endl;
-        // int estract = mapOfTuple[make_tuple(i,j,k)];
+        State reset_state;
 
-        //la prima prob è uno, quindi inizio a calcolare dalla seconda
-        nj++;
+        for (id_nodo_j = 1; id_nodo_j <= 3; id_nodo_j++) {
+        //for (id_nodo_j = 1; id_nodo_j <= Number_of_nodes; id_nodo_j++) {
 
-        for (Tj = 20; Tj <= max_passo; Tj++) {
-            for (kj = 18; kj <= Tj - 2; kj++) {
-                for (nj = 0; nj <= topologia[id_nodo_j-1].get_maxallocableres(); nj++) {
-                    if (Tj == 20 && kj == 18 && nj == 0)
-                        continue;
-                    std::cout << "Stato: (" << kj << "," << Tj << "," << nj << ") ";
-                    stato = make_tuple(kj, Tj, nj);
-                    P = state_probability(kj, Tj, nj);
-                    mapOfTuple[stato] = P;
-                    maplambda_j[stato] = lambda_j;
-                    std::cout << "Probabilita' di stato: " << P;
-                    std::cout << endl;
-                    //std::cout << "lambda_j: " << lambda_j << endl;
 
+            State current_State = reset_state;
+
+            stato = make_tuple(kj, Tj, nj);
+            //current_State.state_param.push_back(stato);
+            double P = 1;
+            mapOfTuple[stato] = P;
+            current_State.prob_map_of_tuple[stato] = P;
+            maplambda_j[stato] = lambda_j;
+            denominatore_lambda_k = topologia[id_nodo_j - 1].get_probabilità_feedback_positivo() * topologia[id_nodo_j - 1].get_num_amici();;
+
+            std::cout << "###### VALUTO IL NODO " << id_nodo_j << "######" << endl;
+            std::cout << "Stato: (" << kj << "," << Tj << "," << nj << ") Probabilita' di stato: " << P;
+            std::cout << endl;
+            //std::cout << "lambda_j: " << lambda_j << endl;
+            // int estract = mapOfTuple[make_tuple(i,j,k)];
+
+            //la prima prob è uno, quindi inizio a calcolare dalla seconda
+            nj++;
+
+            for (Tj = 20; Tj <= max_passo; Tj++) {
+                for (kj = 18; kj <= Tj - 2; kj++) {
+                    for (nj = 0; nj <= topologia[id_nodo_j - 1].get_maxallocableres(); nj++) {
+                        if (Tj == 20 && kj == 18 && nj == 0)
+                            continue;
+                        std::cout << "Stato: (" << kj << "," << Tj << "," << nj << ") ";
+                        stato = make_tuple(kj, Tj, nj);
+                        P = state_probability(kj, Tj, nj);
+                        mapOfTuple[stato] = P;
+                        current_State.prob_map_of_tuple[stato] = P;
+                        maplambda_j[stato] = lambda_j;
+                        std::cout << "Probabilita' di stato: " << P;
+                        std::cout << endl;
+                        //std::cout << "lambda_j: " << lambda_j << endl;
+
+                    }
                 }
             }
+            std::cout << endl; 
+            std::cout << endl;
+            //PROBABILMENTE DOVRO SALVARE L'INTERA CATENA IN UNA STRUTTURA DATI PER IL CALCOLO DEGLI OUTPUT
+            Markov_chain.push_back(current_State);
         }
+
+        // QUI DEVO FARE FUNZIONI PER MODELING OUTPUT
     }
-  
     if (flag_prob_perdita) {
 
         double prob_perdita = 0;
