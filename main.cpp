@@ -19,6 +19,7 @@ private:
     double mu;
     bool type_of_node;
     double probabilita_feedback_positivo;
+    double max_risorse;
 
 public:
     vector<double> S; //social factor
@@ -92,6 +93,28 @@ public:
     double get_mu() {
         return this->mu;
     }
+
+    void set_max_risorse(int classe_disp) {
+        if (classe_disp == 0) {
+            //classe piu alta
+            max_risorse = 3;
+        }
+        else if (classe_disp == 1) {
+            //classe media
+            max_risorse = 2;
+        }
+        else if (classe_disp == 2) {
+            //classe peggiore
+            max_risorse = 1;
+        }
+
+    }
+
+
+    double get_max_risorse() {
+        return this->max_risorse;
+    }
+
 };
 
 //costruttore
@@ -102,6 +125,7 @@ specifiche_nodo::specifiche_nodo() {
     this->mu = 0;
     this->type_of_node = 0;
     this->probabilita_feedback_positivo = 0;
+    this->max_risorse = 0;
 }
 
 //C:\Users\gianc\Documents\GitHub\SSIoT\Sim - n_services_1 - n_devices_25 - n_master_1 - lambda_10.000000 - tot_sim_500 - seed_3 - resource_ctrl_1 - qoe_ctrl_1
@@ -153,8 +177,8 @@ map<tuple<int, int, int>, double> mapOfTuple;
 
 int main() {
     //cosa voglio eseguire?
-    int flag_prob_stato = 1;
-    int flag_prob_perdita = 0;
+    int flag_prob_stato = 0;
+    int flag_prob_perdita = 1;
 
     int indice_topologia = 0; //indice per il vettore di classi
     specifiche_nodo nodo_di_appoggio;
@@ -228,6 +252,7 @@ int main() {
             }
             nodo_di_appoggio.set_probabilità_feedback_positivo(nodo_di_appoggio.get_type());
             nodo_di_appoggio.set_mu(nodo_di_appoggio.get_classe());
+            nodo_di_appoggio.set_max_risorse(nodo_di_appoggio.get_classe());
         }
         topologia.push_back(nodo_di_appoggio);
         nodo_di_appoggio = reset;
@@ -534,12 +559,12 @@ double prob_di_blocco_generica(specifiche_nodo km, double lambda_k) {
     double sommatoria = 0;
     double risultato_sommatoria = 0;
 
-    P_B_prima_parte = pow((lambda_k / km.get_mu()), (max_allocab_resources));
-    P_B_seconda_parte = 1 / factorial(max_allocab_resources);
+    P_B_prima_parte = pow((lambda_k / km.get_mu()), (km.get_max_risorse()));
+    P_B_seconda_parte = 1 / factorial(km.get_max_risorse());
 
 
     int i;
-    for (i = 1; i <= (max_allocab_resources); i++) {
+    for (i = 1; i <= (km.get_max_risorse()); i++) {
         sommatoria = pow((lambda_k / km.get_mu()), i) * (1 / factorial(i));
         risultato_sommatoria = risultato_sommatoria + sommatoria;
     }
@@ -552,21 +577,136 @@ double prob_di_blocco_generica(specifiche_nodo km, double lambda_k) {
 }
 
 //CASO NON OMOGENEO
-/*double loss_probability() {
+double loss_probability() {
     double prob_perdita = 1;
     double traffico_perso = 0;
     int s = 0;
+
+    int i = 0;
+    int k = 0;
+    int j = 0;
+    double Lambda_j_c1 = 0;
+    double P_blocco_j_c1 = 0;
+    vector<double> Lambda_c1;
+    vector<double> P_blocco_c1;
+
+    vector<int> indice_C1;
+    vector<int> indice_C2;
+    vector<int> indice_C3;
+
+
+    for (i= 0; i < Number_of_nodes; i++) {
+
+        if (topologia[i].get_classe() == 0) {
+            indice_C1.push_back(i);
+            //cout << i << endl << endl;
+        }
+        if (topologia[i].get_classe() == 1) {
+            indice_C2.push_back(i);
+            //cout << i << endl << endl;
+        }
+        if (topologia[i].get_classe() == 2) {
+            indice_C3.push_back(i);
+            //cout << i << endl << endl;
+        }
+
+    }
+
+    double denom_c1_proporzione = 0;
+    int n_1 = 0;
+    specifiche_nodo nodo;
+
+
+   for (j = 0; j < indice_C1.size(); j++) {
+       //CALCOLO LAMBDA PER OGNI J
+       for (i = 0; i < Number_of_nodes; i++) {
+           for (n_1 = 0; n_1 < indice_C1.size(); n_1++) {
+               //for (i = 0; i < Number_of_nodes; i++) {
+               if (topologia[i].S[n_1] >= 0) {
+                   denom_c1_proporzione = denom_c1_proporzione + (topologia[i].S[n_1] * topologia[n_1].get_probabilità_feedback_positivo());
+               }
+             //}
+           }
+           if (topologia[indice_C1[j]].S[i] >= 0) {
+                Lambda_j_c1 = Lambda_j_c1 + (topologia[indice_C1[j]].S[i] * lambda_ij * topologia[indice_C1[j]].get_probabilità_feedback_positivo()/ denom_c1_proporzione );
+           }
+           denom_c1_proporzione = 0;
+       }
+       //CALCOLO PROB DI BLOCCO PER OGNI J DATO LAMBDA
+       nodo = topologia[indice_C1[j]];
+       P_blocco_j_c1 = prob_di_blocco_generica(nodo, Lambda_j_c1);
+
+
+       Lambda_c1.push_back(Lambda_j_c1);
+       P_blocco_c1.push_back(P_blocco_j_c1);
+
+       cout <<"Lambda j: " << Lambda_j_c1 << endl << "PB(j): " << P_blocco_j_c1 << endl;
+       //cout << denom_c1_proporzione << endl << endl;
+       //denom_c1_proporzione = 0;
+       Lambda_j_c1 = 0;
+   }
+
+
+/*
+
+    vector<double> LAMBDA_C1;//ove inserisco i traffici in ingresso a tutti i server di C1
+    double Lambda_c1 = 0;
+    double Lambda_appoggio = 0;
+    vector<double> P_BLOCCO_C1; //ove inserisco le p_blocco di tutti i server di C1
+    double P_blocco_c1 = 0;
+
+
+
+
+    for (i = 0; i < Number_of_nodes; i++) {
+        if topologia[i].classe == 1
+            //indice_C1 --> ... come lo inserisco?
+        else if topologia[i].classe == 2
+            //indice_C2 
+        else //indice_C3
+   
+    }
+
+
+
+
+    for (i = 0; i < indice_C1.lenght() ; i++) {
+    
+        for (k = 0; k < Number_of_nodes; k++) {
+
+            if topologia[indice_C1[i]].S[k] > 0 {
+                somma_feedback =
+
+                    Lambda_appoggio.topologia[indice_C1[i]].S[k] * ... * topologia[indice_C1[i]].get_probabilità_feedback_positivo() / somma_feedback
+
+            }
+            else
+                Lambda_appoggio = 0;
+            Lambda_c1 = Lambda_c1 + Lambda_appoggio;
+
+
+    
+        }
+    }
 
     cout << endl << "Probabilita' di perdita del sistema " << prob_perdita << endl;
 
     traffico_perso = lambda * prob_perdita;
     cout << endl << "traffico perso dal sistema " << traffico_perso << endl;
+
+    */
     return prob_perdita;
-}*/
+
+
+}
+
+// FINE CASO NON OMOGENEO
 
 
 
-//CASO OMOGENEO
+
+ //CASO OMOGENEO
+/*
 double loss_probability() {
 
     double prob_perdita = 1;
@@ -638,6 +778,7 @@ double loss_probability() {
     std::cout << endl << "traffico perso dal sistema " << traffico_perso << endl;
     return prob_perdita;
 }
+*/
 
 double prob_blocco(int index) {
     double P_B_prima_parte = 1;
