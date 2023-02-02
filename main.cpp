@@ -649,8 +649,32 @@ double loss_probability() {
   /* cout << Lambda_c1.size() << endl; //r aggiunte per check
    cout << P_blocco_c1.size() << endl; */
   
+   //primo microblocco
+   int indiceJ = 0;
+   int indiceK = 0;
+   int indice = 0;
+   double Lambda_k_c2 = 0; //riadattare sottto
+   vector<double> Lambda_c2;
 
-    
+   for (indiceK = 0; indiceK < indice_C2.size(); indiceK++) {
+       //per il singolo K
+       for (indiceJ = 0; indiceJ < Lambda_c1.size(); indiceJ++) {
+       
+                for (indice = 0; indice < Number_of_nodes; indice++) {
+                    Lambda_k_c2 = Lambda_k_c2 + (Lambda_c1[indiceJ] * topologia[indice].S[indice_C2[indiceK]]);
+                }
+      
+       }
+    Lambda_c2.push_back(Lambda_k_c2);
+
+    cout <<"Stampo per Lambda "<<indiceK <<": " << Lambda_k_c2 << endl;
+    Lambda_k_c2 = 0;
+    //cout << Lambda_c2 << endl;
+   }
+   
+   //cout << app << endl;
+   //cout << indice_C2.size() << endl;
+
 
 
   
