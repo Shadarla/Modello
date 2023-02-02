@@ -564,7 +564,7 @@ double prob_di_blocco_generica(specifiche_nodo km, double lambda_k) {
 
 
     int i;
-    for (i = 1; i <= (km.get_max_risorse()); i++) {
+    for (i = 1; i <= (km.get_max_risorse()); i++) {  // la i non deve patire da zero?(vedi pdf)
         sommatoria = pow((lambda_k / km.get_mu()), i) * (1 / factorial(i));
         risultato_sommatoria = risultato_sommatoria + sommatoria;
     }
@@ -622,12 +622,12 @@ double loss_probability() {
        for (i = 0; i < Number_of_nodes; i++) {
            for (n_1 = 0; n_1 < indice_C1.size(); n_1++) {
                //for (i = 0; i < Number_of_nodes; i++) {
-               if (topologia[i].S[n_1] >= 0) {
-                   denom_c1_proporzione = denom_c1_proporzione + (topologia[i].S[n_1] * topologia[n_1].get_probabilità_feedback_positivo());
+               if (topologia[i].S[indice_C1[n_1]] >= 0) { //per non sommare il contrbuto dise stesso (-1), se è 0 (non amico) somma +0 . somma su tutti gli amici di classe1 grazie al vect ind_C1
+                   denom_c1_proporzione = denom_c1_proporzione + (topologia[i].S[indice_C1[n_1]] * topologia[indice_C1[n_1]].get_probabilità_feedback_positivo());
                }
              //}
            }
-           if (topologia[indice_C1[j]].S[i] >= 0) {
+           if (topologia[indice_C1[j]].S[i] >= 0) { //qui faccio filtro solo per i nodi di C1, grzie al vettore Indic_C1, e su se stesso(-1) , 
                 Lambda_j_c1 = Lambda_j_c1 + (topologia[indice_C1[j]].S[i] * lambda_ij * topologia[indice_C1[j]].get_probabilità_feedback_positivo()/ denom_c1_proporzione );
            }
            denom_c1_proporzione = 0;
@@ -645,10 +645,18 @@ double loss_probability() {
        //denom_c1_proporzione = 0;
        Lambda_j_c1 = 0;
    }
+   
+  /* cout << Lambda_c1.size() << endl; //r aggiunte per check
+   cout << P_blocco_c1.size() << endl; */
+  
+
+    
+
+
+  
 
 
 /*
-
     vector<double> LAMBDA_C1;//ove inserisco i traffici in ingresso a tutti i server di C1
     double Lambda_c1 = 0;
     double Lambda_appoggio = 0;
