@@ -649,26 +649,67 @@ double loss_probability() {
   /* cout << Lambda_c1.size() << endl; //r aggiunte per check
    cout << P_blocco_c1.size() << endl; */
   
-   //primo microblocco
+   //primo microblocco -- PARTE CLASSE 2
    int indiceJ = 0;
    int indiceK = 0;
    int indice = 0;
+   int indice2 = 0;
+   int n_2 = 0;
    double Lambda_k_c2 = 0; //riadattare sottto
    vector<double> Lambda_c2;
+   double denom_c2_proporzione = 0;
+   specifiche_nodo nodo2;
+   double P_blocco_k_c2 = 0;
+   vector<double> P_blocco_c2;
+   double Lambda_k_c2_appoggio = 0;
+
 
    for (indiceK = 0; indiceK < indice_C2.size(); indiceK++) {
        //per il singolo K
        for (indiceJ = 0; indiceJ < Lambda_c1.size(); indiceJ++) {
        
                 for (indice = 0; indice < Number_of_nodes; indice++) {
-                    Lambda_k_c2 = Lambda_k_c2 + (Lambda_c1[indiceJ] * topologia[indice].S[indice_C2[indiceK]]);
-                }
-      
-       }
-    Lambda_c2.push_back(Lambda_k_c2);
+                    for (n_2 = 0; n_2 < indice_C2.size(); n_2++) { // analogo a ciclo con indice n_1
+                        if (topologia[indice].S[indice_C2[n_2]] >= 0) { //per non sommare il contrbuto dise stesso (-1), se è 0 (non amico) somma +0 . somma su tutti gli amici di classe2 grazie al vect ind_C2
+                            denom_c2_proporzione = denom_c2_proporzione + (topologia[indice].S[indice_C2[n_2]] * topologia[indice_C2[n_2]].get_probabilità_feedback_positivo());
+                        }
+                    }
+                  //(topologia[indice_C2[indiceJ]].S[indice] >= 0)  
+                  if (topologia[indice].S[indice_C2[indiceK]] >= 0) {  //qui faccio filtro solo per i nodi di C2, grzie al vettore Indic_C2, e su se stesso(-1) // sotto non deve stare lambdaij, giusto ?
+                    Lambda_k_c2_appoggio = Lambda_k_c2_appoggio + (topologia[indice].S[indice_C2[indiceK]] * topologia[indice_C2[indiceK]].get_probabilità_feedback_positivo() / denom_c2_proporzione);
+                    //Lambda_k_c2 = Lambda_k_c2 + (Lambda_c1[indiceJ] * P_blocco_c1[indiceJ] * topologia[indice].S[indice_C2[indiceK]] * topologia[indice_C2[indiceK]].get_probabilità_feedback_positivo() / denom_c2_proporzione);
+                  } // rimessa la IF
+                  // denom_c2_proporzione = 0; // ERRORE NAN not a numb !!
 
-    cout <<"Stampo per Lambda "<<indiceK <<": " << Lambda_k_c2 << endl;
-    Lambda_k_c2 = 0;
+                }
+                Lambda_k_c2 = Lambda_k_c2 + (Lambda_c1[indiceJ] * P_blocco_c1[indiceJ] * Lambda_k_c2_appoggio);
+                Lambda_k_c2_appoggio = 0;
+                denom_c2_proporzione = 0; // qui funziona ma sn numeri strani
+          //Lambda_c2.push_back(Lambda_k_c2); --> internalizzare?
+       }
+       // CALCOLO DEI CONTRIBUTI DI TRAFFICO DEI NODI AVENTI SOLO AMII DI CLASSE 2 
+       for (indice2 = 0; indice2 < Number_of_nodes; indice2++) {
+            
+       
+       
+       
+       
+       }
+
+
+       
+      //CALCOLO PROB DI BLOCCO PER OGNI K DATO LAMBDA
+     //nodo2 = topologia[indice_C2[indiceJ]];
+     // P_blocco_k_c2 = prob_di_blocco_generica(nodo2, Lambda_k_c2);
+   
+        Lambda_c2.push_back(Lambda_k_c2);
+   // P_blocco_c2.push_back(P_blocco_k_c2);
+
+    
+
+        cout <<"Stampo per Lambda "<<indiceK <<": " << Lambda_k_c2 << endl;
+  //  cout << "P_blocco per K " << indiceK << ": " << P_blocco_k_c2 << endl;
+        Lambda_k_c2 = 0;
     //cout << Lambda_c2 << endl;
    }
    
