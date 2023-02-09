@@ -15,6 +15,8 @@ class specifiche_nodo
 private:
     int id_nodo;
     int num_amici;
+    int num_amici_c1;
+    int num_amici_c2;
     int classe;
     double mu;
     bool type_of_node;
@@ -41,6 +43,23 @@ public:
     int get_num_amici() {
         return this->num_amici;
     }
+
+    void set_num_amici_c1(int amici_nodo_c1) {
+        num_amici_c1 = amici_nodo_c1;
+    }
+
+    int get_num_amici_c1() {
+        return this->num_amici_c1;
+    }
+
+    void set_num_amici_c2(int amici_nodo_c2) {
+        num_amici_c2 = amici_nodo_c2;
+    }
+
+    int get_num_amici_c2() {
+        return this->num_amici_c2;
+    }
+
 
     void set_type(bool tipo) {
         type_of_node = tipo;
@@ -121,6 +140,8 @@ public:
 specifiche_nodo::specifiche_nodo() {
     this->id_nodo = 0;
     this->num_amici = 0;
+    this->num_amici_c1 = 0;
+    this->num_amici_c2 = 0;
     this->classe = 0;
     this->mu = 0;
     this->type_of_node = 0;
@@ -585,6 +606,9 @@ double loss_probability() {
     int i = 0;
     int k = 0;
     int j = 0;
+    int indice_a = 0;
+    int cont_amici_c1 = 0;
+    int cont_amici_c2 = 0;
     double Lambda_j_c1 = 0;
     double P_blocco_j_c1 = 0;
     vector<double> Lambda_c1;
@@ -609,7 +633,23 @@ double loss_probability() {
             indice_C3.push_back(i);
             //cout << i << endl << endl;
         }
+        
+        //aggiungo il ciclo per contare gli amici di classe 1 e 2 
+        for (indice_a = 0; indice_a < Number_of_nodes; indice_a++) {
+            if (topologia[i].S[indice_a] > 0) {
+                if (topologia[indice_a].get_classe() == 0) {
+                    cont_amici_c1++;
+                }
+                if (topologia[indice_a].get_classe() == 1) {
+                    cont_amici_c2++;
+                }
+            }
+        }
 
+        topologia[i].set_num_amici_c1(cont_amici_c1);
+        topologia[i].set_num_amici_c2(cont_amici_c2);
+        cont_amici_c1 = 0;
+        cont_amici_c2 = 0;
     }
 
     double denom_c1_proporzione = 0;
@@ -662,6 +702,9 @@ double loss_probability() {
    double P_blocco_k_c2 = 0;
    vector<double> P_blocco_c2;
    double Lambda_k_c2_appoggio = 0;
+   double Seconda_parte_appoggio = 0;
+
+
 
 
    for (indiceK = 0; indiceK < indice_C2.size(); indiceK++) {
@@ -679,45 +722,50 @@ double loss_probability() {
                     Lambda_k_c2_appoggio = Lambda_k_c2_appoggio + (topologia[indice].S[indice_C2[indiceK]] * topologia[indice_C2[indiceK]].get_probabilità_feedback_positivo() / denom_c2_proporzione);
                     //Lambda_k_c2 = Lambda_k_c2 + (Lambda_c1[indiceJ] * P_blocco_c1[indiceJ] * topologia[indice].S[indice_C2[indiceK]] * topologia[indice_C2[indiceK]].get_probabilità_feedback_positivo() / denom_c2_proporzione);
                   } // rimessa la IF
-                  // denom_c2_proporzione = 0; // ERRORE NAN not a numb !!
+                
+                //calcolo la quota parte del traffico delle i  con solo amici di classe2
+                  Seconda_parte_appoggio = Seconda_parte_appoggio + lambda_ij * topologia[indice].get_num_amici_c2() / max(1, topologia[indice].get_num_amici_c2()) * (1 - min(1, topologia[indice].get_num_amici_c2())) * Lambda_k_c2_appoggio;
 
                 }
-                Lambda_k_c2 = Lambda_k_c2 + (Lambda_c1[indiceJ] * P_blocco_c1[indiceJ] * Lambda_k_c2_appoggio);
+                Lambda_k_c2 = Lambda_k_c2 + (Lambda_c1[indiceJ] * P_blocco_c1[indiceJ] * Lambda_k_c2_appoggio) + Seconda_parte_appoggio;
                 Lambda_k_c2_appoggio = 0;
-                denom_c2_proporzione = 0; // qui funziona ma sn numeri strani
-          //Lambda_c2.push_back(Lambda_k_c2); --> internalizzare?
+                denom_c2_proporzione = 0;
+                Seconda_parte_appoggio = 0;
+          
        }
-       // CALCOLO DEI CONTRIBUTI DI TRAFFICO DEI NODI AVENTI SOLO AMII DI CLASSE 2 
-       for (indice2 = 0; indice2 < Number_of_nodes; indice2++) {
-            
-       
-       
-       
-       
-       }
-
-
-       
+        
       //CALCOLO PROB DI BLOCCO PER OGNI K DATO LAMBDA
-     //nodo2 = topologia[indice_C2[indiceJ]];
-     // P_blocco_k_c2 = prob_di_blocco_generica(nodo2, Lambda_k_c2);
+      nodo2 = topologia[indice_C2[indiceK]];
+      P_blocco_k_c2 = prob_di_blocco_generica(nodo2, Lambda_k_c2);
    
-        Lambda_c2.push_back(Lambda_k_c2);
-   // P_blocco_c2.push_back(P_blocco_k_c2);
+      Lambda_c2.push_back(Lambda_k_c2);
+      P_blocco_c2.push_back(P_blocco_k_c2);
 
+      cout <<"Stampo per Lambda "<<indiceK <<": " << Lambda_k_c2 << endl;
+      cout << "P_blocco per K " << indiceK << ": " << P_blocco_k_c2 << endl;
     
-
-        cout <<"Stampo per Lambda "<<indiceK <<": " << Lambda_k_c2 << endl;
-  //  cout << "P_blocco per K " << indiceK << ": " << P_blocco_k_c2 << endl;
         Lambda_k_c2 = 0;
-    //cout << Lambda_c2 << endl;
+        P_blocco_k_c2 = 0;
+        //cout << Lambda_c2.size() << endl;
+        //cout << P_blocco_c2.size() << endl;
    }
    
-   //cout << app << endl;
-   //cout << indice_C2.size() << endl;
+   i = 0;
+   double T_perso_appoggio = 0;
+   for (i = 0; i < Lambda_c2.size(); i++) {
+       T_perso_appoggio = T_perso_appoggio + (Lambda_c2[i] * P_blocco_c2[i]);
+       cout << endl << "contributo traffico perso " << Lambda_c2[i] * P_blocco_c2[i] << endl;
+       cout << endl << "traffico perso dal sistema " << T_perso_appoggio << endl;
+   }
 
+   //cout << endl << "traffico perso dal sistema " << T_perso_appoggio << endl;
 
+   return prob_perdita;
 
+   /*
+    traffico_perso = lambda * prob_perdita;
+    std::cout << endl << "traffico perso dal sistema " << traffico_perso << endl;
+   */
   
 
 
@@ -728,39 +776,7 @@ double loss_probability() {
     vector<double> P_BLOCCO_C1; //ove inserisco le p_blocco di tutti i server di C1
     double P_blocco_c1 = 0;
 
-
-
-
-    for (i = 0; i < Number_of_nodes; i++) {
-        if topologia[i].classe == 1
-            //indice_C1 --> ... come lo inserisco?
-        else if topologia[i].classe == 2
-            //indice_C2 
-        else //indice_C3
-   
-    }
-
-
-
-
-    for (i = 0; i < indice_C1.lenght() ; i++) {
     
-        for (k = 0; k < Number_of_nodes; k++) {
-
-            if topologia[indice_C1[i]].S[k] > 0 {
-                somma_feedback =
-
-                    Lambda_appoggio.topologia[indice_C1[i]].S[k] * ... * topologia[indice_C1[i]].get_probabilità_feedback_positivo() / somma_feedback
-
-            }
-            else
-                Lambda_appoggio = 0;
-            Lambda_c1 = Lambda_c1 + Lambda_appoggio;
-
-
-    
-        }
-    }
 
     cout << endl << "Probabilita' di perdita del sistema " << prob_perdita << endl;
 
@@ -768,7 +784,7 @@ double loss_probability() {
     cout << endl << "traffico perso dal sistema " << traffico_perso << endl;
 
     */
-    return prob_perdita;
+    //return prob_perdita;
 
 
 }
