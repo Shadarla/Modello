@@ -156,7 +156,7 @@ double calcolo_lambda_j();
 double trust_model(int id_amico_di_j);
 void calcolo_denominatore_lambda_k();
 double calcolo_lambda_k(int id_nodo_k);
-double loss_probability();
+double loss_probability(double lambda_i);
 double prob_blocco(int index);
 double factorial(int n);
 double prob_binomiale(vector<int> amici_di_i, int id_amico_j);
@@ -168,7 +168,8 @@ int kj = 18;
 int Tj = 20;
 int nj = 0;
 const int Number_of_nodes = 25;
-const double lambda = 20;
+//const double lambda = 20;
+double lambda = 20;
 const int num_classi_di_servizio = 2;
 const double mu_j = 1.4; //verifica (potrebbe anche non servire piu)
 const bool type_of_node = 0; //0 per benevolo, 1 per malevolo (potrebbe anche non servire piu)
@@ -177,7 +178,8 @@ const int max_passo = Tj+7; //esiste una formuletta per calcolarlo
 const int num_amici = 13; // supposto uguale per tutti (to check per caso non omogeneo e potrebbe non servire piu)
 double denominatore_lambda_k = 0; // non varia mai
 const int id_nodo_j = 1; //id del nodo da valutare
-const double lambda_ij = (lambda / Number_of_nodes); //essendo omogenea la distribuzione al momento è uguale per tutti
+double lambda_ij = (lambda / Number_of_nodes); //essendo omogenea la distribuzione al momento è uguale per tutti
+
 const double soglia = 0.48;
 
 
@@ -316,7 +318,28 @@ int main() {
     if (flag_prob_perdita) {
 
         double prob_perdita = 0;
-        prob_perdita = loss_probability();
+        double traffico_perso = 0;
+   
+        int l = 0; //per cicla con lambda diversi
+
+        /*
+if (file_risultati.is_open()) {
+    //file_risultati << lambda_ij << '\t' << Traffico_perso ;
+}
+*/
+//********SETTO L'OUTPUT DEI RISULTATI*************
+     string path_out = "File_output.txt";
+     ofstream file_risultati(path_out);
+     file_risultati << "LAMBDA" << '\t' << "T_Perso" << '\n';
+        for (l = 10; l < 22; l++) {
+            double lambda_l = ((double)l / (double)Number_of_nodes);
+            cout << "Lambda i uguale a " << lambda_l << endl;
+            
+            //prob_perdita = loss_probability();
+            traffico_perso = loss_probability(lambda_l);
+            file_risultati << l <<'\t' << traffico_perso << '\n';
+        }
+     file_risultati.close();
     }
 
     return 0;
@@ -598,7 +621,7 @@ double prob_di_blocco_generica(specifiche_nodo km, double lambda_k) {
 }
 
 //CASO NON OMOGENEO
-double loss_probability() {
+double loss_probability(double lambda_i) {
     double prob_perdita = 1;
     double traffico_perso = 0;
     int s = 0;
@@ -668,7 +691,7 @@ double loss_probability() {
              //}
            }
            if (topologia[indice_C1[j]].S[i] >= 0) { //qui faccio filtro solo per i nodi di C1, grzie al vettore Indic_C1, e su se stesso(-1) , 
-                Lambda_j_c1 = Lambda_j_c1 + (topologia[indice_C1[j]].S[i] * lambda_ij * topologia[indice_C1[j]].get_probabilità_feedback_positivo()/ denom_c1_proporzione );
+                Lambda_j_c1 = Lambda_j_c1 + (topologia[indice_C1[j]].S[i] * lambda_i * topologia[indice_C1[j]].get_probabilità_feedback_positivo()/ denom_c1_proporzione );
            }
            denom_c1_proporzione = 0;
        }
@@ -724,7 +747,7 @@ double loss_probability() {
                   } // rimessa la IF
                 
                 //calcolo la quota parte del traffico delle i  con solo amici di classe2
-                  Seconda_parte_appoggio = Seconda_parte_appoggio + lambda_ij * topologia[indice].get_num_amici_c2() / max(1, topologia[indice].get_num_amici_c2()) * (1 - min(1, topologia[indice].get_num_amici_c2())) * Lambda_k_c2_appoggio;
+                  Seconda_parte_appoggio = Seconda_parte_appoggio + lambda_i * topologia[indice].get_num_amici_c2() / max(1, topologia[indice].get_num_amici_c2()) * (1 - min(1, topologia[indice].get_num_amici_c2())) * Lambda_k_c2_appoggio;
 
                 }
                 Lambda_k_c2 = Lambda_k_c2 + (Lambda_c1[indiceJ] * P_blocco_c1[indiceJ] * Lambda_k_c2_appoggio) + Seconda_parte_appoggio;
@@ -750,17 +773,23 @@ double loss_probability() {
         //cout << P_blocco_c2.size() << endl;
    }
    
-   i = 0;
+   //i = 0;
    double T_perso_appoggio = 0;
+   double Traffico_perso = 0;
+
    for (i = 0; i < Lambda_c2.size(); i++) {
        T_perso_appoggio = T_perso_appoggio + (Lambda_c2[i] * P_blocco_c2[i]);
-       cout << endl << "contributo traffico perso " << Lambda_c2[i] * P_blocco_c2[i] << endl;
+       //cout << endl << "contributo traffico perso " << Lambda_c2[i] * P_blocco_c2[i] << endl;
        cout << endl << "traffico perso dal sistema " << T_perso_appoggio << endl;
    }
+   Traffico_perso = T_perso_appoggio;
 
    //cout << endl << "traffico perso dal sistema " << T_perso_appoggio << endl;
 
-   return prob_perdita;
+   
+
+   //return prob_perdita; 
+   return Traffico_perso;
 
    /*
     traffico_perso = lambda * prob_perdita;
