@@ -19,7 +19,7 @@ private:
     double mu;
     bool type_of_node;
     double probabilita_feedback_positivo;
-    double max_allocable_res;
+    int max_allocable_res;
 
 public:
     vector<double> S; //social factor
@@ -76,13 +76,13 @@ public:
     void set_mu(int classe_disp) {
         if (classe_disp == 0) {
             //classe piu alta
-           // mu = 1.4;
-            mu = 1.2;
+           mu = 1.4;
+            //mu = 1.2;
         }
         else if (classe_disp == 1) {
             //classe media
-            //mu = 0.7;
-            mu = 0.6;
+            mu = 0.7;
+            //mu = 0.6;
         }
         else if (classe_disp == 2) {
             //classe peggiore
@@ -114,7 +114,7 @@ public:
 
     }
 
-    double get_maxallocableres() {
+    int get_maxallocableres() {
         return this->max_allocable_res;
     }
 };
@@ -287,7 +287,7 @@ int main() {
 
         std::cout << "Calcolo max passo" << max_passo << endl;
 
-        for (id_nodo_j = 1; id_nodo_j <= 2; id_nodo_j++) {
+        for (id_nodo_j = 1; id_nodo_j <= 10; id_nodo_j++) {
         //for (id_nodo_j = 1; id_nodo_j <= Number_of_nodes; id_nodo_j++) {
 
 
@@ -310,7 +310,6 @@ int main() {
             std::cout << "###### VALUTO IL NODO " << id_nodo_j << " di tipo: " << topologia[id_nodo_j - 1].get_probabilità_feedback_positivo() << "######" << endl;
             std::cout << "Stato: (" << kj << "," << Tj << "," << nj << ") Probabilita' di stato: " << P;
             std::cout << endl;
-            //std::cout << "lambda_j: " << lambda_j << endl;
             // int estract = mapOfTuple[make_tuple(i,j,k)];
 
             //la prima prob è uno, quindi inizio a calcolare dalla seconda
@@ -331,9 +330,13 @@ int main() {
                             std::cout << endl;
                             if (nj == 0) {
                                 lambda_j = calcolo_lambda_j();
+                                maplambda_j[stato] = lambda_j;
                             }
-                            maplambda_j[stato] = lambda_j;
-                            current_node_State.map_current_lambda_j[stato] = lambda_j;
+                            else
+                            {
+                                maplambda_j[stato] = maplambda_j[make_tuple(kj,Tj,nj-1)];
+                            }
+                            current_node_State.map_current_lambda_j[stato] = maplambda_j[stato];
                             //std::cout << "lambda_j: " << lambda_j << endl;
                         }
                     }
@@ -416,10 +419,30 @@ int main() {
             Markov_chains.push_back(current_node_State);
         }
 
-        // QUI DEVO FARE FUNZIONI PER MODELING OUTPUT
         // CALCOLO PROB DI BLOCCO DEL SISTEMA
         double prob_blocco_system = 0;
         double sommatoria_Lambda_j_al_passo_T = 0;
+        double denominatore_lambda_totale_perdite = 0;
+
+        Tj = max_passo;
+       
+        //for (id_nodo_j = 1; id_nodo_j <= Number_of_nodes; id_nodo_j++) {
+        for (id_nodo_j = 1; id_nodo_j <= 10; id_nodo_j++) {
+            for (kj = 18; kj <= Tj - 2; kj++) {
+                denominatore_lambda_totale_perdite = denominatore_lambda_totale_perdite + (double)Markov_chains[id_nodo_j-1].map_current_lambda_j[make_tuple(kj,Tj,topologia[id_nodo_j-1].get_maxallocableres())];
+            }
+        }
+
+        for (id_nodo_j = 1; id_nodo_j <= 10; id_nodo_j++) {
+        //for (id_nodo_j = 1; id_nodo_j <= Number_of_nodes; id_nodo_j++) {
+            for (kj = 18; kj <= Tj - 2; kj++) {
+                prob_blocco_system = prob_blocco_system + ((double)Markov_chains[id_nodo_j-1].prob_map_of_tuple[make_tuple(kj,Tj,topologia[id_nodo_j-1].get_maxallocableres())] * (double)Markov_chains[id_nodo_j-1].map_current_lambda_j[make_tuple(kj,Tj, topologia[id_nodo_j - 1].get_maxallocableres())] / denominatore_lambda_totale_perdite);
+            }
+        }
+
+        cout << "Probabilità di blocco del sistema: " << prob_blocco_system << endl;
+
+
     }
     if (flag_prob_perdita) {
 
@@ -431,67 +454,66 @@ int main() {
 }
 
 double state_probability() { //forse non serve passare i tre parametri (var globale)
-   
+
     double probabilita = 0; //variabile da ritornare
     double prob_prima_parte = 0;
     double prob_seconda_parte = 0;
     double prob_terza_parte = 0;
     //lambda_j = calcolo_lambda_j();
     //double lambda_j = 1;
-   
+
     //controllo sullo stato attraverso map
 
-    
-    if (nj - 1 > 0){
-       // cout << endl << (lambda_j + (nj - 1)) << endl;
-       //if (lambda_j == 0)
-       //     prob_prima_parte = 0;
-       // else
-       //     prob_prima_parte = mapOfTuple[make_tuple(kj, Tj, nj - 1)] * lambda_j / (lambda_j + (nj - 1) * topologia[id_nodo_j-1].get_mu());
+
+    if (nj - 1 > 0) {
+        // cout << endl << (lambda_j + (nj - 1)) << endl;
+        //if (lambda_j == 0)
+        //     prob_prima_parte = 0;
+        // else
+        //     prob_prima_parte = mapOfTuple[make_tuple(kj, Tj, nj - 1)] * lambda_j / (lambda_j + (nj - 1) * topologia[id_nodo_j-1].get_mu());
         prob_prima_parte = mapOfTuple[make_tuple(kj, Tj, nj - 1)] * maplambda_j[make_tuple(kj, Tj, nj - 1)] / (maplambda_j[make_tuple(kj, Tj, nj - 1)] + (double)(nj - 1) * topologia[id_nodo_j - 1].get_mu());
     }
-    else if(nj - 1 == 0) {
+    else if (nj - 1 == 0) {
         prob_prima_parte = mapOfTuple[make_tuple(kj, Tj, nj - 1)];
     }
-    else{
+    else {
         prob_prima_parte = 0;
     }
-    
+
     if (nj == topologia[id_nodo_j - 1].get_maxallocableres()) {
         prob_seconda_parte = 0;
         prob_terza_parte = 0;
     }
-    else {
-        if (nj + 1 == topologia[id_nodo_j - 1].get_maxallocableres()) {
-            if (Tj - kj == 2) {
-                prob_terza_parte = mapOfTuple[make_tuple(kj - 1, Tj - 1, nj + 1)] * topologia[id_nodo_j - 1].get_probabilità_feedback_positivo();
-                prob_seconda_parte = 0;
-            }
-            else if (kj == 18) {
-                prob_seconda_parte = mapOfTuple[make_tuple(kj, Tj - 1, nj + 1)] * (1 - topologia[id_nodo_j - 1].get_probabilità_feedback_positivo());
-                prob_terza_parte = 0;
-            }
-            else {
-                prob_seconda_parte = mapOfTuple[make_tuple(kj, Tj - 1, nj + 1)] * (1 - topologia[id_nodo_j - 1].get_probabilità_feedback_positivo());
-                prob_terza_parte = mapOfTuple[make_tuple(kj - 1, Tj - 1, nj + 1)] * topologia[id_nodo_j - 1].get_probabilità_feedback_positivo();
-            }
-
+    else if (nj + 1 == topologia[id_nodo_j - 1].get_maxallocableres()) {
+        if (Tj - kj == 2) {
+            prob_terza_parte = mapOfTuple[make_tuple(kj - 1, Tj - 1, nj + 1)] * topologia[id_nodo_j - 1].get_probabilità_feedback_positivo();
+            prob_seconda_parte = 0;
+        }
+        else if (kj == 18) {
+            prob_seconda_parte = mapOfTuple[make_tuple(kj, Tj - 1, nj + 1)] * (1 - topologia[id_nodo_j - 1].get_probabilità_feedback_positivo());
+            prob_terza_parte = 0;
         }
         else {
-            if (Tj - kj == 2) {
-                prob_seconda_parte = 0;
-                prob_terza_parte = mapOfTuple[make_tuple(kj - 1, Tj - 1, nj + 1)] * (double)(nj + 1) * (topologia[id_nodo_j - 1].get_mu()) * (topologia[id_nodo_j - 1].get_probabilità_feedback_positivo()) / (maplambda_j[make_tuple(kj - 1, Tj - 1, nj + 1)] + ((double)(nj + 1) * topologia[id_nodo_j - 1].get_mu()));
-            }
-            else if (kj == 18) {
-                prob_seconda_parte = mapOfTuple[make_tuple(kj, Tj - 1, nj + 1)] * (double)(nj + 1) * topologia[id_nodo_j - 1].get_mu() * (1 - topologia[id_nodo_j - 1].get_probabilità_feedback_positivo()) / (maplambda_j[make_tuple(kj, Tj - 1, nj + 1)] + ((double)(nj + 1) * topologia[id_nodo_j - 1].get_mu()));
-                prob_terza_parte = 0;
-            }
-            else {
-                prob_seconda_parte = mapOfTuple[make_tuple(kj, Tj - 1, nj + 1)] * (double)(nj + 1) * topologia[id_nodo_j - 1].get_mu() * (1 - topologia[id_nodo_j - 1].get_probabilità_feedback_positivo()) / (maplambda_j[make_tuple(kj, Tj - 1, nj + 1)] + (double)(nj + 1) * topologia[id_nodo_j - 1].get_mu());
-                prob_terza_parte = mapOfTuple[make_tuple(kj - 1, Tj - 1, nj + 1)] * (double)(nj + 1) * topologia[id_nodo_j - 1].get_mu() * topologia[id_nodo_j - 1].get_probabilità_feedback_positivo() / (maplambda_j[make_tuple(kj - 1, Tj - 1, nj + 1)] + (double)(nj + 1) * topologia[id_nodo_j - 1].get_mu());
-            }
+            prob_seconda_parte = mapOfTuple[make_tuple(kj, Tj - 1, nj + 1)] * (1 - topologia[id_nodo_j - 1].get_probabilità_feedback_positivo());
+            prob_terza_parte = mapOfTuple[make_tuple(kj - 1, Tj - 1, nj + 1)] * topologia[id_nodo_j - 1].get_probabilità_feedback_positivo();
         }
+
     }
+    else {
+        if (Tj - kj == 2) {
+            prob_seconda_parte = 0;
+            prob_terza_parte = mapOfTuple[make_tuple(kj - 1, Tj - 1, nj + 1)] * (double)(nj + 1) * (topologia[id_nodo_j - 1].get_mu()) * (topologia[id_nodo_j - 1].get_probabilità_feedback_positivo()) / (maplambda_j[make_tuple(kj - 1, Tj - 1, nj + 1)] + ((double)(nj + 1) * topologia[id_nodo_j - 1].get_mu()));
+        }
+        else if (kj == 18) {
+            prob_seconda_parte = mapOfTuple[make_tuple(kj, Tj - 1, nj + 1)] * (double)(nj + 1) * topologia[id_nodo_j - 1].get_mu() * (1 - topologia[id_nodo_j - 1].get_probabilità_feedback_positivo()) / (maplambda_j[make_tuple(kj, Tj - 1, nj + 1)] + ((double)(nj + 1) * topologia[id_nodo_j - 1].get_mu()));
+            prob_terza_parte = 0;
+        }
+        else {
+            prob_seconda_parte = mapOfTuple[make_tuple(kj, Tj - 1, nj + 1)] * (double)(nj + 1) * topologia[id_nodo_j - 1].get_mu() * (1 - topologia[id_nodo_j - 1].get_probabilità_feedback_positivo()) / (maplambda_j[make_tuple(kj, Tj - 1, nj + 1)] + (double)(nj + 1) * topologia[id_nodo_j - 1].get_mu());
+            prob_terza_parte = mapOfTuple[make_tuple(kj - 1, Tj - 1, nj + 1)] * (double)(nj + 1) * topologia[id_nodo_j - 1].get_mu() * topologia[id_nodo_j - 1].get_probabilità_feedback_positivo() / (maplambda_j[make_tuple(kj - 1, Tj - 1, nj + 1)] + (double)(nj + 1) * topologia[id_nodo_j - 1].get_mu());
+        }
+    
+}
 
     
 
@@ -504,23 +526,21 @@ double state_probability() { //forse non serve passare i tre parametri (var glob
 double calcolo_lambda_j() {
     
     double lambda_provider = 0;  //lambda_j risultato da ritornare
-    double prob_richiesta_di_i_assegnata_a_j;
+    double prob_richiesta_di_i_assegnata_a_j = 0; 
 
-    int i;
+    int i=0;
 
     for (i = 0; i < Number_of_nodes; i++) {
         // dopo teorema delle prob totali sul numero di amici di i piu trusted di j
         if (topologia[id_nodo_j - 1].S[i] > 0) {
         //if (topologia[id_nodo_j - 1].S[i] * ((double)kj / (double)Tj) >= soglia) { //se trust sotto soglia inutile calcolarlo
             // cout << (topologia[id_nodo_j - 1].S[i]) * ((double)kj / (double)Tj) << endl;
-            prob_richiesta_di_i_assegnata_a_j = trust_model(i);//passo indice id_amico di j soprasoglia
+            prob_richiesta_di_i_assegnata_a_j = trust_model(i);//passo indice id_amico di j
             //prob_richiesta_di_i_assegnata_a_j = 0.5;//rigo di prova per debuggare
         }
-        else
+        else{
             prob_richiesta_di_i_assegnata_a_j = 0;
-        //}
-        //else
-        //    prob_richiesta_di_i_assegnata_a_j.push_back(0);
+        }
         lambda_provider = lambda_provider + (lambda_i * prob_richiesta_di_i_assegnata_a_j);
     }
     //cout << endl << lambda_provider << endl;
@@ -599,7 +619,7 @@ double trust_model(int indice_amico_di_j) {
                     prob_amico_piu_trusted_di_j_parziale = prob_binomiale(indici_amici_di_i, indice_amico_di_j, j);//to check termini da passare perche devo passare tutto il vettore tranne indici_amici_di_i[j]
                     //calcolo binomiale tra T_km e n_index;
                     binomiale = factorial(T_km) / (factorial(n_index) * factorial(T_km - n_index));
-                    binomiale = binomiale * pow(km.get_probabilità_feedback_positivo(), n_index) * pow(1 - km.get_probabilità_feedback_positivo(), T_km - n_index);
+                    binomiale = binomiale * pow(km.get_probabilità_feedback_positivo(), n_index) * pow(1 - km.get_probabilità_feedback_positivo(), T_km - (double)n_index);
                     prob_amico_piu_trusted_di_j_parziale = prob_amico_piu_trusted_di_j_parziale * binomiale;
                     //prob_amico_piu_trusted_di_j = prob_amico_piu_trusted_di_j + prob_amico_piu_trusted_di_j_parziale;
                     omega = omega + prob_amico_piu_trusted_di_j_parziale;
@@ -676,17 +696,27 @@ double trust_model(int indice_amico_di_j) {
         }
         */
     }
+
+    //DEVO TOGLIERE IL NULL
+    if (valore_controllo_trust > 0) {
+        //cout << "Valore di controllo trust " << valore_controllo_trust << endl;
+    }
+    else{
+        valore_controllo_trust = 0;
+    }
+    
+    
     return valore_controllo_trust;
 }
 
 int calcolo_max_passo() {
     //DEFINIRE LA FUNZIONE PER IL CALCOLO DEL MAX PASSO A SECONDA DEL RATE DI PERDITA CHE SI VUOLE PER LA SOGLIA
-    int T_delta = 0;
+    double T_delta = 0;
     
     //Tdelta= k0-alfa ko / (alfa ko/T0)-Pf ---- 0.35 è la probabilità di feedback positivo di un nodo malevolo al momento statica
-    T_delta = (kj - alfa_soglia * kj) / ((alfa_soglia * kj) / Tj) - 0.38;
+    T_delta = ((double)kj - alfa_soglia * (double)kj) / ((alfa_soglia * (double)kj) / (double)Tj) - 0.38;
 
-    return Tj + T_delta;
+    return Tj + (int)T_delta;
         
 }
 
@@ -700,17 +730,29 @@ double calcolo_lambda_k(int indici_nodo_k) {
     //double denominatore_media = 0; //mi serve per capire quanti sono i contributi effettivi di lambda_j precedente
     //double denominatore_pesato = 0; //mi serve per proporzionare la prob di stato
 
-    //CALCOLO DEL DENOMINATORE PER PESARE LE PROB DI STATO
-
-    if (kj == 18) {
-        lambda_j_prec = maplambda_j[make_tuple(kj, Tj - 1, nj + 1)];
+    //MEDIA LAMBDAJ PRECEDENTE
+    if (nj == 0) {
+        if (kj == 18) {
+            lambda_j_prec = maplambda_j[make_tuple(kj, Tj - 1, nj + 1)];
+        }
+        else if (Tj - kj == 2) {
+            lambda_j_prec = maplambda_j[make_tuple(kj - 1, Tj - 1, nj + 1)];
+        }
+        else {
+            lambda_j_prec = maplambda_j[make_tuple(kj, Tj - 1, nj + 1)] * ( mapOfTuple[make_tuple(kj, Tj - 1, nj + 1)] / ( mapOfTuple[make_tuple(kj, Tj - 1, nj + 1)] + mapOfTuple[make_tuple(kj - 1, Tj - 1, nj + 1)])) + maplambda_j[make_tuple(kj - 1, Tj - 1, nj + 1)] * ( mapOfTuple[make_tuple(kj - 1, Tj - 1, nj + 1)] / (mapOfTuple[make_tuple(kj, Tj - 1, nj + 1)] + mapOfTuple[make_tuple(kj - 1, Tj - 1, nj + 1)]));
+        }
     }
-    else if (Tj - kj == 2) {
-        lambda_j_prec = maplambda_j[make_tuple(kj - 1, Tj - 1, nj + 1)];
+  
+
+    //DEVO ELIMINARE IL NAN
+    if (lambda_j_prec > 0) {
+        lambda_k = (lambda_j_prec * topologia[indici_nodo_k].get_probabilità_feedback_positivo() * topologia[indici_nodo_k].get_num_amici()) / denominatore_lambda_k;
     }
     else {
-        lambda_j_prec = maplambda_j[make_tuple(kj, Tj - 1, nj + 1)] * (mapOfTuple[make_tuple(kj, Tj - 1, nj + 1)] / mapOfTuple[make_tuple(kj, Tj - 1, nj + 1)]+ mapOfTuple[make_tuple(kj - 1, Tj - 1, nj + 1)]) + maplambda_j[make_tuple(kj - 1, Tj - 1, nj + 1)] * (mapOfTuple[make_tuple(kj - 1, Tj - 1, nj + 1)] / mapOfTuple[make_tuple(kj, Tj - 1, nj + 1)] + mapOfTuple[make_tuple(kj - 1, Tj - 1, nj + 1)]);
+        lambda_j_prec = 0.01;
+        lambda_k = (lambda_j_prec * topologia[indici_nodo_k].get_probabilità_feedback_positivo() * topologia[indici_nodo_k].get_num_amici()) / denominatore_lambda_k;
     }
+
 
     /*
 
@@ -744,7 +786,6 @@ double calcolo_lambda_k(int indici_nodo_k) {
     double lambda_j_medio = (lambda_j_medio_prima_parte + lambda_j_medio_seconda_parte + lambda_j_medio_terza_parte);
     */
     
-    lambda_k = (lambda_j_prec * topologia[indici_nodo_k].get_probabilità_feedback_positivo() * topologia[indici_nodo_k].get_num_amici())/ denominatore_lambda_k;
     //std::cout << endl;
     //std::cout << "lambda_k del nodo " << topologia[indici_nodo_k].get_id_nodo() << ": " << lambda_k << endl;
     return lambda_k;
@@ -773,7 +814,7 @@ double prob_binomiale(vector<int> indici_amici_di_i,int indice_amico_di_j) {
             T_km = proporzionalita_tk(km);
         }
         //calcolare n0=(intero piu piccolo Sij*delta j dallo stato*T_km)/Sik;
-        n0 = (topologia[id_nodo_j-1].S[indice_amico_di_j] * ((double)kj / (double)Tj) * T_km) / km.S[indice_amico_di_j];
+        n0 = (topologia[id_nodo_j-1].S[indice_amico_di_j] * ((double)kj / (double)Tj) * (double)T_km) / km.S[indice_amico_di_j];
 
         for (n_index = 0; n_index < n0; n_index++)
         {
@@ -782,6 +823,13 @@ double prob_binomiale(vector<int> indici_amici_di_i,int indice_amico_di_j) {
             valore_binomiale_sommatoria_totale = valore_binomiale_sommatoria_totale + binomiale;
         }
         valore_probabilità_parziale = valore_probabilità_parziale * valore_binomiale_sommatoria_totale;
+    }
+    //DEVO ELIMINARE IL NAN
+    if (valore_probabilità_parziale > 0) {
+       
+    }
+    else {
+        valore_probabilità_parziale = 0;
     }
 
     return valore_probabilità_parziale;
@@ -830,7 +878,7 @@ int proporzionalita_tk(specifiche_nodo km) {
     int T_k = 0;
 
     //recuperare T_j dallo stato
-    T_k = (Tj * km.get_probabilità_feedback_positivo() * km.get_num_amici()) / (topologia[id_nodo_j - 1].get_probabilità_feedback_positivo() * topologia[id_nodo_j - 1].get_num_amici());
+    T_k = ((double)Tj * km.get_probabilità_feedback_positivo() * (double)km.get_num_amici()) / (topologia[id_nodo_j - 1].get_probabilità_feedback_positivo() * (double)topologia[id_nodo_j - 1].get_num_amici());
     return T_k;
 
 }
@@ -842,7 +890,7 @@ double prob_di_blocco_generica(specifiche_nodo km, double lambda_k) {
     double sommatoria = 0;
     double risultato_sommatoria = 0;
 
-    P_B_prima_parte = pow((lambda_k / km.get_mu()), (km.get_maxallocableres()));
+    P_B_prima_parte = pow((lambda_k / km.get_mu()), (double)(km.get_maxallocableres()));
     P_B_seconda_parte = 1 / factorial(km.get_maxallocableres());
 
 
