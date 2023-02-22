@@ -331,13 +331,15 @@ if (file_risultati.is_open()) {
      string path_out = "File_output.txt";
      ofstream file_risultati(path_out);
      file_risultati << "LAMBDA" << '\t' << "T_Perso" << '\n';
-        for (l = 10; l < 22; l++) {
-            double lambda_l = ((double)l / (double)Number_of_nodes);
-            cout << "Lambda i uguale a " << lambda_l << endl;
+        for (l = 5; l < 32; l++) {
+            if (file_risultati.is_open()) {
+                double lambda_l = ((double)l / (double)Number_of_nodes);
+                cout << "Lambda i uguale a " << lambda_l << endl;
             
-            //prob_perdita = loss_probability();
-            traffico_perso = loss_probability(lambda_l);
-            file_risultati << l <<'\t' << traffico_perso << '\n';
+                //prob_perdita = loss_probability();
+                traffico_perso = loss_probability(lambda_l);
+                file_risultati << l <<'\t' << traffico_perso << '\n';
+            }
         }
      file_risultati.close();
     }
@@ -615,7 +617,7 @@ double prob_di_blocco_generica(specifiche_nodo km, double lambda_k) {
     P_B_terza_parte = 1 / risultato_sommatoria;
 
     double P_B = P_B_prima_parte * P_B_seconda_parte * P_B_terza_parte;
-
+    //cout << "P_B " <<P_B <<endl; //togli
     return P_B;
 
 }
@@ -674,7 +676,7 @@ double loss_probability(double lambda_i) {
         cont_amici_c1 = 0;
         cont_amici_c2 = 0;
     }
-
+    //cout << "DIM indice_c1 " << indice_C1.size() << endl; cout << "DIM indice_c2 " << indice_C2.size() << endl; //prova
     double denom_c1_proporzione = 0;
     int n_1 = 0;
     specifiche_nodo nodo;
@@ -690,7 +692,7 @@ double loss_probability(double lambda_i) {
                }
              //}
            }
-           if (topologia[indice_C1[j]].S[i] >= 0) { //qui faccio filtro solo per i nodi di C1, grzie al vettore Indic_C1, e su se stesso(-1) , 
+           if (topologia[indice_C1[j]].S[i] >= 0 && denom_c1_proporzione >0) { //qui faccio filtro solo per i nodi di C1, grzie al vettore Indic_C1, e su se stesso(-1) , 
                 Lambda_j_c1 = Lambda_j_c1 + (topologia[indice_C1[j]].S[i] * lambda_i * topologia[indice_C1[j]].get_probabilità_feedback_positivo()/ denom_c1_proporzione );
            }
            denom_c1_proporzione = 0;
@@ -780,11 +782,11 @@ double loss_probability(double lambda_i) {
    for (i = 0; i < Lambda_c2.size(); i++) {
        T_perso_appoggio = T_perso_appoggio + (Lambda_c2[i] * P_blocco_c2[i]);
        //cout << endl << "contributo traffico perso " << Lambda_c2[i] * P_blocco_c2[i] << endl;
-       cout << endl << "traffico perso dal sistema " << T_perso_appoggio << endl;
+      // cout << endl << "traffico perso dal sistema " << T_perso_appoggio << endl;
    }
    Traffico_perso = T_perso_appoggio;
 
-   //cout << endl << "traffico perso dal sistema " << T_perso_appoggio << endl;
+   cout << endl << "traffico perso dal sistema " << T_perso_appoggio << endl;
 
    
 
