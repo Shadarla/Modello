@@ -145,19 +145,20 @@ double prob_binomiale(vector<int> amici_di_i, int id_amico_j);
 double prob_binomiale(vector<int> amici_di_i, int id_amico_j, int j);
 int proporzionalita_tk(specifiche_nodo km);
 double prob_di_blocco_generica(specifiche_nodo km, double lambda_k);
-int calcolo_max_passo();
+double calcolo_max_passo();
 
 int kj = 18;
 int Tj = 20;
 int nj = 0;
 const int Number_of_nodes = 25;
-const double lambda = 15;
+const double lambda = 18;
 const int num_classi_di_servizio = 2;
 const double mu_j = 1.4; //verifica (potrebbe anche non servire piu)
 const bool type_of_node = 0; //0 per benevolo, 1 per malevolo (potrebbe anche non servire piu)
 const int max_allocab_resources = 2; //(potrebbe anche non servire piu)
 const double alfa_soglia = 0.78;  //arbitrario
-int max_passo = Tj+9; //esiste una formuletta per calcolarlo
+double max_passo = 1;
+//int max_passo = Tj+9; //esiste una formuletta per calcolarlo
 const int num_amici = 13; // supposto uguale per tutti (to check per caso non omogeneo e potrebbe non servire piu)
 int id_nodo_j = 1; //id del nodo da valutare
 const double lambda_i = (lambda / Number_of_nodes); //essendo omogenea la distribuzione al momento è uguale per tutti
@@ -284,8 +285,9 @@ int main() {
 
         States reset_state;
         max_passo = calcolo_max_passo();
+        //max_passo = 35;
 
-        std::cout << "Calcolo max passo" << max_passo << endl;
+        std::cout << "Calcolo max passo" << Tj+max_passo << endl;
 
         //for (id_nodo_j = 1; id_nodo_j <= 10; id_nodo_j++) {
         for (id_nodo_j = 1; id_nodo_j <= Number_of_nodes; id_nodo_j++) {
@@ -315,7 +317,7 @@ int main() {
             //la prima prob è uno, quindi inizio a calcolare dalla seconda
             //nj++;
 
-            for (Tj = 20; Tj <= max_passo; Tj++) {
+            for (Tj = 20; Tj <= 20+max_passo; Tj++) {
                 for (kj = 18; kj <= Tj-2; kj++) {
                     for (nj = 0; nj <= topologia[id_nodo_j - 1].get_maxallocableres(); nj++) { //controllare se minore o minore uguale
                         if (Tj == 20 && kj == 18 && nj == 0)
@@ -376,7 +378,7 @@ int main() {
               
 
             //CALCOLO MEDIA DI OUTPUT
-            for (Tj = 20; Tj <= max_passo; Tj++) {
+            for (Tj = 20; Tj <= 20+max_passo; Tj++) {
                 double weightdenom = 0;
                     for (kj = 18; kj <= Tj - 2; kj++) {
                         for (nj = 0; nj <= topologia[id_nodo_j - 1].get_maxallocableres(); nj++) {
@@ -418,28 +420,65 @@ int main() {
             }
 
             //CALCOLO PROB ASINTOTICA CHE IL SERVICE PROVIDER NON PUO ACCETTARE UNA RICHIESTA
-            Tj = max_passo;
+            Tj = 20 + (int)max_passo;
             nj = topologia[id_nodo_j - 1].get_maxallocableres();
             double prob_risorse_piene = 0;
             for (kj = 18; kj <= Tj - 2; kj++) {
                 prob_risorse_piene = prob_risorse_piene + mapOfTuple[make_tuple(kj, Tj, nj)];
             }
             current_node_State.asyntotic_res_full = prob_risorse_piene;
-            std::cout << "Probabilità asintotica che non si possano accettare richieste dato: " << Tj << " : " << prob_risorse_piene << endl << endl;
+            //std::cout << "Probabilità asintotica che non si possano accettare richieste dato: " << Tj << " : " << prob_risorse_piene << endl << endl;
             //prob_risorse_piene = 0;
 
             // SALVARE L'INTERA CATENA IN UNA STRUTTURA DATI PER IL CALCOLO DEGLI OUTPUT
             Markov_chains.push_back(current_node_State);
         }
 
-        // CALCOLO PROB DI BLOCCO DEL SISTEMA
+        /*
+        // CALCOLO PROB BLOCCO SISTEMA - VERSIONE PROVA nuova
+        double prob_blocco_system = 0;
+        double denominatore_per_nodo = 0;
+        Tj = max_passo;
+
+        for (id_nodo_j = 1; id_nodo_j <= Number_of_nodes; id_nodo_j++) {
+            int Nj = topologia[id_nodo_j - 1].get_maxallocableres();
+            denominatore_per_nodo = 1;
+            for (kj = 18; kj <= Tj - 2; kj++) {
+                for (nj = 0; nj <= Nj; nj++) {
+                    //EVITARE NAN
+                    if (Markov_chains[id_nodo_j - 1].prob_map_of_tuple[make_tuple(kj, Tj, nj)] > 0)
+                        denominatore_per_nodo = denominatore_per_nodo + (Markov_chains[id_nodo_j - 1].prob_map_of_tuple[make_tuple(kj, Tj, nj)]);
+                }
+            }
+            //ELIMINO NODI MALEVOLI?
+            if (topologia[id_nodo_j - 1].get_type() == 0) {
+                for (kj = 18; kj <= Tj - 2; kj++) {
+                    //EVITARE NAN
+                    if (Markov_chains[id_nodo_j - 1].prob_map_of_tuple[make_tuple(kj, Tj, Nj)] * Markov_chains[id_nodo_j - 1].map_current_lambda_j[make_tuple(kj, Tj, Nj)] / denominatore_per_nodo > 0)
+                        prob_blocco_system = prob_blocco_system + (Markov_chains[id_nodo_j - 1].prob_map_of_tuple[make_tuple(kj, Tj, Nj)] * Markov_chains[id_nodo_j - 1].map_current_lambda_j[make_tuple(kj, Tj, Nj)] / denominatore_per_nodo);
+                }
+            }
+            else {
+                for (kj = 18; kj <= Tj - 6; kj++) {
+                    //EVITARE NAN
+                    if (Markov_chains[id_nodo_j - 1].prob_map_of_tuple[make_tuple(kj, Tj - 4, Nj)] * Markov_chains[id_nodo_j - 1].map_current_lambda_j[make_tuple(kj, Tj - 4, Nj)] / denominatore_per_nodo > 0)
+                        prob_blocco_system = prob_blocco_system + (Markov_chains[id_nodo_j - 1].prob_map_of_tuple[make_tuple(kj, Tj - 4, Nj)] * Markov_chains[id_nodo_j - 1].map_current_lambda_j[make_tuple(kj, Tj - 4, Nj)] / denominatore_per_nodo);
+                }
+            }
+        }
+        cout << "Probabilità di blocco del sistema usando i pesi come lambda: " << prob_blocco_system << endl;
+        */
+
+        
+        // CALCOLO PROB DI BLOCCO DEL SISTEMA - VERSIONE AL MOMENTO FUNZIONANTE
         double prob_blocco_system = 0;
         double denominatore_lambda_totale_perdite = 0;
         double denominatore_stato_pesi = 0;
 
-        Tj = max_passo;
+        //Tj = max_passo;
        
         for (id_nodo_j = 1; id_nodo_j <= Number_of_nodes; id_nodo_j++) {
+            Tj = 20 + ((int)(max_passo * ((double)topologia[id_nodo_j - 1].get_num_amici() / (double)topologia[0].get_num_amici()) * (topologia[id_nodo_j - 1].get_probabilità_feedback_positivo() / topologia[0].get_probabilità_feedback_positivo())));
             nj = topologia[id_nodo_j - 1].get_maxallocableres();
             //ELIMINO NODI MALEVOLI?
             if (topologia[id_nodo_j-1].get_type()==0) {
@@ -451,6 +490,7 @@ int main() {
                 }
             }
             //PARTE per i nodi malevoli
+            /*
             else {
                 for (kj = 18; kj <= Tj - 6; kj++) {
                     //EVITARE NAN
@@ -459,12 +499,14 @@ int main() {
                     }
                 }
             }
+            */
         }
 
 
 
         for (id_nodo_j = 1; id_nodo_j <= Number_of_nodes; id_nodo_j++) {
             nj = topologia[id_nodo_j - 1].get_maxallocableres();
+            Tj = 20 +((int)( max_passo * ((double)topologia[id_nodo_j - 1].get_num_amici() / (double)topologia[0].get_num_amici()) * (topologia[id_nodo_j - 1].get_probabilità_feedback_positivo() /topologia[0].get_probabilità_feedback_positivo())));
             //ELIMINO NODI MALEVOLI?
             if (topologia[id_nodo_j - 1].get_type() == 0) {
                  for (kj = 18; kj <= Tj - 2; kj++) {
@@ -473,6 +515,7 @@ int main() {
                         prob_blocco_system = prob_blocco_system + (Markov_chains[id_nodo_j - 1].prob_map_of_tuple[make_tuple(kj, Tj, topologia[id_nodo_j - 1].get_maxallocableres())] * Markov_chains[id_nodo_j - 1].map_current_lambda_j[make_tuple(kj, Tj, nj)] / denominatore_lambda_totale_perdite);
                  }
             }
+            /*
             else {
                 for (kj = 18; kj <= Tj - 6; kj++) {
                     //EVITARE NAN
@@ -480,9 +523,21 @@ int main() {
                         prob_blocco_system = prob_blocco_system + (Markov_chains[id_nodo_j - 1].prob_map_of_tuple[make_tuple(kj, Tj-4, nj)] * Markov_chains[id_nodo_j - 1].map_current_lambda_j[make_tuple(kj, Tj-4, nj)] / denominatore_lambda_totale_perdite);
                 }
             }
+            */
         }
-        cout << "Probabilità di blocco del sistema usando i pesi come lambda: " << prob_blocco_system << endl;
-
+        cout << "Intensità di traffico perso usando i pesi come lambda: " << prob_blocco_system << endl;
+        
+        
+        
+        //PRINT INTENSITA TRAFFICO PERSO
+        ofstream file_traffico;
+        file_traffico.open("filetraffico.txt",ios::app);
+        if (file_traffico.is_open()){
+            //file_traffico << "lambda" << "\t" << "intensità traffico perso" << "\t" << "seedtopology" << "\n";
+            file_traffico << lambda << "\t" << prob_blocco_system << "\t" << 10 << "\n";
+            file_traffico.close();
+        }
+       
 
     /*
     for (id_nodo_j = 1; id_nodo_j <= Number_of_nodes; id_nodo_j++) {
@@ -534,39 +589,6 @@ int main() {
      */   
 
         
-
-        /*PROBABILITA DI BLOCCO DEL SISTEMA SETTANDO A MANO IL PASSO
-        Tj = 32;
-        prob_blocco_system = 0;
-        denominatore_lambda_totale_perdite = 0;
-
-        for (id_nodo_j = 1; id_nodo_j <= Number_of_nodes; id_nodo_j++) {
-            //for (id_nodo_j = 1; id_nodo_j <= 10; id_nodo_j++) {
-                //ELIMINO NODI MALEVOLI?
-            if (topologia[id_nodo_j - 1].get_type() == 0) {
-                //if (topologia[id_nodo_j-1].get_classe()==1){
-                for (kj = 18; kj <= Tj - 2; kj++) {
-                    denominatore_lambda_totale_perdite = denominatore_lambda_totale_perdite + Markov_chains[id_nodo_j - 1].map_current_lambda_j[make_tuple(kj, Tj, topologia[id_nodo_j - 1].get_maxallocableres())];
-
-                }
-                //}
-            }
-        }
-
-        //for (id_nodo_j = 1; id_nodo_j <= 10; id_nodo_j++) {
-        for (id_nodo_j = 1; id_nodo_j <= Number_of_nodes; id_nodo_j++) {
-            //ELIMINO NODI MALEVOLI?
-            if (topologia[id_nodo_j - 1].get_type() == 0) {
-                //if (topologia[id_nodo_j - 1].get_classe() == 1) {
-                for (kj = 18; kj <= Tj - 2; kj++) {
-                    prob_blocco_system = prob_blocco_system + (Markov_chains[id_nodo_j - 1].prob_map_of_tuple[make_tuple(kj, Tj, topologia[id_nodo_j - 1].get_maxallocableres())] * Markov_chains[id_nodo_j - 1].map_current_lambda_j[make_tuple(kj, Tj, topologia[id_nodo_j - 1].get_maxallocableres())] / denominatore_lambda_totale_perdite);
-                }
-                //}
-            }
-        }
-        cout << "Probabilità di blocco del sistema calcolata dopo 10 passi: " << prob_blocco_system << endl;
-
-        */
 
     }
     if (flag_prob_perdita) {
@@ -807,15 +829,16 @@ double trust_model(int indice_amico_di_j) {
     return valore_controllo_trust;
 }
 
-int calcolo_max_passo() {
+double calcolo_max_passo() {
     //DEFINIRE LA FUNZIONE PER IL CALCOLO DEL MAX PASSO A SECONDA DEL RATE DI PERDITA CHE SI VUOLE PER LA SOGLIA
-    int T_delta = 0;
-    int denom_T_delta = 0;
-    denom_T_delta = (int)((alfa_soglia * (double)kj) - (0.5 * (double)Tj));
+    double T_delta = 0;
+    double denom_T_delta = 0;
+    denom_T_delta = (alfa_soglia * (double)kj) - (0.5 * (double)Tj);
     //Tdelta= k0-alfa ko / (alfa ko/T0)-Pf ---- 0.5 è la probabilità di feedback positivo di un nodo malevolo al momento statica
-    T_delta = (int) (((double)kj - (alfa_soglia * (double)kj)) *(double)Tj / denom_T_delta);
+    T_delta = ((double)kj - (alfa_soglia * (double)kj)) *(double)Tj / denom_T_delta;
 
-    return Tj + T_delta;
+    //return Tj + T_delta;
+    return T_delta;
         
 }
 
@@ -945,7 +968,7 @@ int proporzionalita_tk(specifiche_nodo km) {
     int T_k = 0;
 
     //recuperare T_j dallo stato
-    T_k = (int)((double)Tj * km.get_probabilità_feedback_positivo() * (double)km.get_num_amici()) / (topologia[id_nodo_j - 1].get_probabilità_feedback_positivo() * (double)topologia[id_nodo_j - 1].get_num_amici());
+    T_k = ((int)((double)Tj * km.get_probabilità_feedback_positivo() * (double)km.get_num_amici() / (topologia[id_nodo_j - 1].get_probabilità_feedback_positivo() * (double)topologia[id_nodo_j - 1].get_num_amici())));
     return T_k;
 
 }
