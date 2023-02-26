@@ -331,7 +331,7 @@ if (file_risultati.is_open()) {
      string path_out = "File_output.txt";
      ofstream file_risultati(path_out);
      file_risultati << "LAMBDA" << '\t' << "T_Perso" << '\n';
-        for (l = 5; l < 32; l++) {
+        for (l = 5; l <= 31; l++) {
             if (file_risultati.is_open()) {
                 double lambda_l = ((double)l / (double)Number_of_nodes);
                 cout << "Lambda i uguale a " << lambda_l << endl;
@@ -675,6 +675,7 @@ double loss_probability(double lambda_i) {
         topologia[i].set_num_amici_c2(cont_amici_c2);
         cont_amici_c1 = 0;
         cont_amici_c2 = 0;
+        //cout << "amici c1 del nodo " << i <<": " << topologia[i].get_num_amici_c1() << " \t amici c2 " << topologia[i].get_num_amici_c2() << endl;
     }
     //cout << "DIM indice_c1 " << indice_C1.size() << endl; cout << "DIM indice_c2 " << indice_C2.size() << endl; //prova
     double denom_c1_proporzione = 0;
@@ -701,7 +702,7 @@ double loss_probability(double lambda_i) {
        nodo = topologia[indice_C1[j]];
        P_blocco_j_c1 = prob_di_blocco_generica(nodo, Lambda_j_c1);
 
-
+       //inserimento dei LAMBDA e PROBAB_BLOCCO nei rispettivi vettori "raccoglitori" 
        Lambda_c1.push_back(Lambda_j_c1);
        P_blocco_c1.push_back(P_blocco_j_c1);
 
@@ -709,6 +710,7 @@ double loss_probability(double lambda_i) {
        //cout << denom_c1_proporzione << endl << endl;
        //denom_c1_proporzione = 0;
        Lambda_j_c1 = 0;
+       P_blocco_j_c1 = 0;
    }
    
   /* cout << Lambda_c1.size() << endl; //r aggiunte per check
