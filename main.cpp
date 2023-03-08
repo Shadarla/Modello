@@ -693,7 +693,7 @@ double loss_probability(double lambda_i) {
                }
              //}
            }
-           if (topologia[indice_C1[j]].S[i] >= 0 /* && denom_c1_proporzione >0 */) { //qui faccio filtro solo per i nodi di C1, grzie al vettore Indic_C1, e su se stesso(-1) , 
+           if (topologia[indice_C1[j]].S[i] >= 0 && denom_c1_proporzione >0) { //qui faccio filtro solo per i nodi di C1, grzie al vettore Indic_C1, e su se stesso(-1) , 
                 Lambda_j_c1 = Lambda_j_c1 + (topologia[indice_C1[j]].S[i] * lambda_i * topologia[indice_C1[j]].get_probabilità_feedback_positivo()/ denom_c1_proporzione );
            }
            denom_c1_proporzione = 0;
