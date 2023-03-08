@@ -331,7 +331,7 @@ if (file_risultati.is_open()) {
      string path_out = "File_output.txt";
      ofstream file_risultati(path_out);
      file_risultati << "LAMBDA" << '\t' << "T_Perso" << '\n';
-        for (l = 5; l <= 31; l++) {
+        for (l = 5; l <= 7; l++) {
             if (file_risultati.is_open()) {
                 double lambda_l = ((double)l / (double)Number_of_nodes);
                 cout << "Lambda i uguale a " << lambda_l << endl;
@@ -693,7 +693,7 @@ double loss_probability(double lambda_i) {
                }
              //}
            }
-           if (topologia[indice_C1[j]].S[i] >= 0 && denom_c1_proporzione >0) { //qui faccio filtro solo per i nodi di C1, grzie al vettore Indic_C1, e su se stesso(-1) , 
+           if (topologia[indice_C1[j]].S[i] >= 0 /* && denom_c1_proporzione >0 */) { //qui faccio filtro solo per i nodi di C1, grzie al vettore Indic_C1, e su se stesso(-1) , 
                 Lambda_j_c1 = Lambda_j_c1 + (topologia[indice_C1[j]].S[i] * lambda_i * topologia[indice_C1[j]].get_probabilità_feedback_positivo()/ denom_c1_proporzione );
            }
            denom_c1_proporzione = 0;
@@ -754,7 +754,8 @@ double loss_probability(double lambda_i) {
                   Seconda_parte_appoggio = Seconda_parte_appoggio + lambda_i * topologia[indice].get_num_amici_c2() / max(1, topologia[indice].get_num_amici_c2()) * (1 - min(1, topologia[indice].get_num_amici_c2())) * Lambda_k_c2_appoggio;
 
                 }
-                Lambda_k_c2 = Lambda_k_c2 + (Lambda_c1[indiceJ] * P_blocco_c1[indiceJ] * Lambda_k_c2_appoggio) + Seconda_parte_appoggio;
+                //formula totale Lambda
+                Lambda_k_c2 = Lambda_k_c2 + ((Lambda_c1[indiceJ] * P_blocco_c1[indiceJ] * Lambda_k_c2_appoggio) + Seconda_parte_appoggio);
                 Lambda_k_c2_appoggio = 0;
                 denom_c2_proporzione = 0;
                 Seconda_parte_appoggio = 0;
