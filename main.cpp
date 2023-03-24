@@ -190,6 +190,8 @@ struct States {
     map<tuple<int, int, int>, double> prob_map_of_tuple;
     map<tuple<int, int, int>, double> map_current_lambda_j;
     map<int, double> map_media;
+    map<int, double> map_fattimale;
+    int T;
 };
 
 vector<States> Markov_chains;
@@ -363,6 +365,9 @@ int main() {
                                     maplambda_j[stato] = maplambda_j[make_tuple(kj, Tj, nj - 1)];
                                 }
                                 current_node_State.map_current_lambda_j[stato] = maplambda_j[stato];
+
+                                
+                                
                                 //std::cout << "lambda_j: " << lambda_j << endl;
                             }
                         }
@@ -377,6 +382,12 @@ int main() {
                 double check_prob_uguale_uno = 0;
                 double check_prob_uguale_uno_appoggio = 0;
                 double check_prob_app_prec = 0;
+                double counter_fattimale = 0;
+                double numeratore_fattimale = 0;
+                double sommatoria_fattimale = 0;
+
+
+                current_node_State.T = 20 + ((int)(max_passo * ((double)topologia[id_nodo_j - 1].get_num_amici() / (double)topologia[0].get_num_amici()) * (topologia[id_nodo_j - 1].get_probabilità_feedback_positivo() / topologia[0].get_probabilità_feedback_positivo())));
 
 
                 if (calcolomediaoutput) {
@@ -389,20 +400,31 @@ int main() {
                             }
                         }
 
+
                         for (kj = 18; kj <= Tj - 2; kj++) {
                             //per ogni k devo calcolare il peso 
                             media_output = (double)kj / (double)Tj;
+                            if (Tj == current_node_State.T) {
+                                counter_fattimale = (double)Tj - (double)kj - 2;
+                            }
                             for (nj = 0; nj <= topologia[id_nodo_j - 1].get_maxallocableres(); nj++) { //controllare se minore o minore uguale
                                 //calcolare somma prob di stato
                                 numeratore_media_output = numeratore_media_output + mapOfTuple[make_tuple(kj, Tj, nj)];
-
+                                if (Tj == current_node_State.T) {
+                                    numeratore_fattimale = numeratore_fattimale + mapOfTuple[make_tuple(kj, Tj, nj)];
+                                }
 
                             }
 
                             numeratore_media_output = (numeratore_media_output / weightdenom);
                             sommatoria_media_output = sommatoria_media_output + (media_output * numeratore_media_output);
+                            if (Tj == current_node_State.T) {
+                                numeratore_fattimale = (numeratore_fattimale / weightdenom);
+                                sommatoria_fattimale = sommatoria_fattimale + (counter_fattimale * numeratore_media_output);
+                            }
 
                             numeratore_media_output = 0;
+                            numeratore_fattimale = 0;
                         }
 
 
@@ -419,33 +441,76 @@ int main() {
                             media_output.close();
                         }
 
+
+                        //PRINT FATTI MALE
+                        if (Tj == current_node_State.T) {
+                            std::cout << "Media fatti male per nodo j: " << id_nodo_j << " : " << sommatoria_fattimale << endl << endl;
+                            current_node_State.map_fattimale[Tj] = sommatoria_fattimale;
+                        }
+
+
                         current_node_State.map_media[Tj] = sommatoria_media_output;
                         sommatoria_media_output = 0;
+                        sommatoria_fattimale = 0;
                     }
 
                 }
-               
+                
+                
 
                 // SALVARE L'INTERA CATENA IN UNA STRUTTURA DATI PER IL CALCOLO DEGLI OUTPUT
                 Markov_chains.push_back(current_node_State);
             }
 
             
-   
 
+            //COMMUNITY AVERAGE REPUTATION
 
-            // CALCOLO PROB DI BLOCCO DEL SISTEMA - VERSIONE AL MOMENTO FUNZIONANTE
-            double prob_blocco_system = 0;
-            double denominatore_lambda_totale_perdite = 0;
+            int somma_richieste_totali = 0;
+            double community_avg_reputation = 0;
+            double community_fattimale = 0;
+            double reputation_single_pesata = 0;
+            double fattimale_single_pesata = 0;
+
+            for (id_nodo_j = 1; id_nodo_j <= Number_of_nodes; id_nodo_j++) {
+                somma_richieste_totali = somma_richieste_totali + Markov_chains[id_nodo_j-1].T;
+            }
+            
+
+            for (id_nodo_j = 1; id_nodo_j <= Number_of_nodes; id_nodo_j++) {
+                Tj = Markov_chains[id_nodo_j - 1].T;
+                reputation_single_pesata = Markov_chains[id_nodo_j - 1].map_media[Tj] * Tj / somma_richieste_totali;
+                fattimale_single_pesata = Markov_chains[id_nodo_j - 1].map_fattimale[Tj] * Tj / somma_richieste_totali;
+                community_avg_reputation = community_avg_reputation + reputation_single_pesata;
+                community_fattimale = community_fattimale + fattimale_single_pesata;
+            }
+
+            // STAMPA
+            std::cout << "Media Reputazione della rete: " << community_avg_reputation << endl << endl;
+            std::cout << "Media servizi fatti male della rete: " << community_fattimale << endl << endl;
+
+            ofstream media_output_netw;
+            media_output_netw.open("mediaoutput.txt", ios::app);
+            if (media_output_netw.is_open()) {
+                media_output_netw << "La Media Reputazione della rete è: " << community_avg_reputation << "per Lambda " << lambda << ": \n";
+                media_output_netw << "La Media servizi fatti male della rete è: " << community_fattimale << "per Lambda " << lambda << ": \n";
+                media_output_netw.close();
+            }
+
+           
 
 
             //CALCOLO TRAFFICO PERSO VERSIONE DEL PROF
 
+
+            double prob_blocco_system = 0;
+            double denominatore_lambda_totale_perdite = 0;
             int risorse_nodo = 0;
 
             for (id_nodo_j = 1; id_nodo_j <= Number_of_nodes; id_nodo_j++) {
                 denominatore_lambda_totale_perdite = 0;
-                Tj = 20 + ((int)(max_passo * ((double)topologia[id_nodo_j - 1].get_num_amici() / (double)topologia[0].get_num_amici()) * (topologia[id_nodo_j - 1].get_probabilità_feedback_positivo() / topologia[0].get_probabilità_feedback_positivo())));
+                //Tj = 20 + ((int)(max_passo * ((double)topologia[id_nodo_j - 1].get_num_amici() / (double)topologia[0].get_num_amici()) * (topologia[id_nodo_j - 1].get_probabilità_feedback_positivo() / topologia[0].get_probabilità_feedback_positivo())));
+                Tj = Markov_chains[id_nodo_j - 1].T;
                 risorse_nodo = topologia[id_nodo_j - 1].get_maxallocableres();
                 //ELIMINO NODI MALEVOLI?
                 if (topologia[id_nodo_j - 1].get_type() == 0) {
@@ -473,47 +538,57 @@ int main() {
             ofstream file_traffico;
             file_traffico.open("filetraffico.txt", ios::app);
             if (file_traffico.is_open()) {
-                file_traffico << lambda << "\t" << prob_blocco_system << "\t" << 10 << "\n";
+                file_traffico <<"Lambda " << lambda << "\t" << prob_blocco_system << "\t" << 10 << "\n";
                 file_traffico.close();
             }
 
             //CALCOLO PROBABILITA' CHE UN SERVICE PROVIDER DI CLASSE PIU ALTA ABBIA RISORSE LIBERE
 
-
-
             double high_class_av_num = 0;
             double high_class_av_den = 0;
             double prob_high_class_av = 0;
+            int counter_high_class = 0;
+            double average_prob_hc = 0;
+            ofstream highclass_output;
 
             for (id_nodo_j = 1; id_nodo_j <= Number_of_nodes; id_nodo_j++) {
                 if (topologia[id_nodo_j - 1].get_maxallocableres() == 3) {
-                    Tj = 20 + ((int)(max_passo * ((double)topologia[id_nodo_j - 1].get_num_amici() / (double)topologia[0].get_num_amici()) * (topologia[id_nodo_j - 1].get_probabilità_feedback_positivo() / topologia[0].get_probabilità_feedback_positivo())));
-
+                    //Tj = 20 + ((int)(max_passo * ((double)topologia[id_nodo_j - 1].get_num_amici() / (double)topologia[0].get_num_amici()) * (topologia[id_nodo_j - 1].get_probabilità_feedback_positivo() / topologia[0].get_probabilità_feedback_positivo())));
+                    Tj = Markov_chains[id_nodo_j - 1].T;
                     for (kj = 18; kj <= Tj; kj++) {
                         for (nj = 18; nj <= topologia[id_nodo_j-1].get_maxallocableres(); nj++) {
                             if (nj <= topologia[id_nodo_j - 1].get_maxallocableres() - 1) {
                                 high_class_av_num = high_class_av_num + Markov_chains[id_nodo_j-1].prob_map_of_tuple[make_tuple(kj,Tj,nj)];
+                                counter_high_class++;
                             }
                             high_class_av_den = high_class_av_den + Markov_chains[id_nodo_j - 1].prob_map_of_tuple[make_tuple(kj, Tj, nj)];
 
                         }
                     }
                     prob_high_class_av = high_class_av_num/ high_class_av_den;
+                    average_prob_hc = average_prob_hc + prob_high_class_av;
                     high_class_av_num = 0;
                     high_class_av_den = 0;
+                    
 
                     // STAMPA
                     std::cout << "Probabilità hc availability del nodo" << id_nodo_j << "per Tj=: " << Tj << " : " << prob_high_class_av << endl << endl;
-                    ofstream highclass_output;
+                    
                     highclass_output.open("highclass_output.txt", ios::app);
                     if (highclass_output.is_open()) {
-                        highclass_output << "NODO " << id_nodo_j << ": \n" << "Probabilità hc availability per Tj=: " << Tj << " : " << prob_high_class_av << ": \n" << ": \n";
+                        highclass_output <<"Lambda " << lambda << "\t" << "NODO " << id_nodo_j << ": \n" << "Probabilità hc availability per Tj=: " << Tj << " : " << prob_high_class_av << ": \n" << ": \n";
                         highclass_output.close();
                     }
                 }
                 
-            }           
-        
+            }   
+
+            average_prob_hc = average_prob_hc / counter_high_class;
+            highclass_output.open("highclass_output.txt", ios::app);
+                    if (highclass_output.is_open()) {
+                        highclass_output << "Lambda " << lambda << "\t" << "Media Probabilità hc availability " << average_prob_hc << ": \n";
+                        highclass_output.close();
+                    }
 
     }
 
