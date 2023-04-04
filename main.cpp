@@ -331,7 +331,7 @@ if (file_risultati.is_open()) {
      string path_out = "File_output.txt";
      ofstream file_risultati(path_out);
      file_risultati << "LAMBDA" << '\t' << "T_Perso" << '\n';
-        for (l = 4; l <= 50; l++) {
+        for (l = 20; l <= 20; l++) {
             if (file_risultati.is_open()) {
                 double lambda_l = ((double)l / (double)Number_of_nodes);
                 cout << "Lambda i uguale a " << lambda_l << endl;
@@ -767,6 +767,8 @@ double loss_probability(double lambda_i) {
 
                     //calcolo la quota parte del traffico delle i  con solo amici di classe2 -- congelata per il momento
                     //Seconda_parte_appoggio = Seconda_parte_appoggio + lambda_i * topologia[indice].get_num_amici_c2() / max(1, topologia[indice].get_num_amici_c2()) * (1 - min(1, topologia[indice].get_num_amici_c2())) * Lambda_k_c2_appoggio;
+                    //new
+                    //Seconda_parte_appoggio =
 
 
                  //CALCOLO CONTRIBUTO " SU SINGOLO I"  e accumulo
@@ -780,26 +782,54 @@ double loss_probability(double lambda_i) {
 
                 }
 
-                Seconda_parte_appoggio = 0;
-
                 //NEW
                 CONTRIBUTO_SOMMA_J = CONTRIBUTO_SOMMA_J + contributo_somma_i;
                 contributo_somma_i = 0;
        
-          
+  
        }
-        
+
+       //calcolo quota parte del traffico delle i  con solo amici di Classe2 -- ricorda di azzerare 
+       int i_1 = 0;
+       double Seconda_parte_appoggio_1 = 0;
+       double Seconda_parte_appoggio_2 = 0;
+
+       for (i_1 = 0; i_1 < Number_of_nodes; i_1++) {
+            for (n_2 = 0; n_2 < indice_C2.size(); n_2++) { 
+                  if (topologia[i_1].S[indice_C2[n_2]] >= 0) { //per non sommare il contrbuto dise stesso (-1) ecc..
+                            denom_c2_proporzione = denom_c2_proporzione + (topologia[i_1].S[indice_C2[n_2]] * topologia[indice_C2[n_2]].get_probabilità_feedback_positivo());
+                  }
+            }
+
+            // calcolo porzione di traffico sul nodo di C2 ( cambio con i_1)
+            if (topologia[indice_C2[indiceK]].S[i_1] >= 0 && denom_c2_proporzione > 0) {  //qui faccio filtro solo per i nodi di C2, grzie al vettore Indic_C2, e su se stesso(-1) // sotto non deve stare lambdaij, giusto ?
+                  Seconda_parte_appoggio_2 = (topologia[indice_C2[indiceK]].S[i_1] * topologia[indice_C2[indiceK]].get_probabilità_feedback_positivo() / denom_c2_proporzione);
+            }
+
+           Seconda_parte_appoggio_1 = topologia[i_1].get_num_amici_c2() / max(1, topologia[i_1].get_num_amici_c2()) * (1 - min(1, topologia[i_1].get_num_amici_c1() )); //check se (double)
+           
+           Seconda_parte_appoggio = Seconda_parte_appoggio + lambda_i * Seconda_parte_appoggio_1 * Seconda_parte_appoggio_2;
+       }
+       //fine calcolo parte nodi solo amici  di C2
+
+      
+       Lambda_k_c2 = CONTRIBUTO_SOMMA_J + Seconda_parte_appoggio;
+
       //CALCOLO PROB DI BLOCCO PER OGNI K DATO LAMBDA
       nodo2 = topologia[indice_C2[indiceK]];
-      P_blocco_k_c2 = prob_di_blocco_generica(nodo2, CONTRIBUTO_SOMMA_J);
+      //P_blocco_k_c2 = prob_di_blocco_generica(nodo2, CONTRIBUTO_SOMMA_J);
+      P_blocco_k_c2 = prob_di_blocco_generica(nodo2, Lambda_k_c2);
       
-      Lambda_c2.push_back(CONTRIBUTO_SOMMA_J);
+      //Lambda_c2.push_back(CONTRIBUTO_SOMMA_J);
+      Lambda_c2.push_back(Lambda_k_c2);
       P_blocco_c2.push_back(P_blocco_k_c2);
       
-      cout <<"Stampo per Lambda "<<indiceK <<": " << CONTRIBUTO_SOMMA_J << endl;
+      //cout <<"Stampo per Lambda "<<indiceK <<": " << CONTRIBUTO_SOMMA_J << endl;
+      cout << "Stampo per Lambda " << indiceK << ": " << Lambda_k_c2 << endl;
       cout << "P_blocco per K " << indiceK << ": " << P_blocco_k_c2 << endl;
 
         CONTRIBUTO_SOMMA_J = 0;
+        Seconda_parte_appoggio = 0;
         Lambda_k_c2 = 0;
         P_blocco_k_c2 = 0;
         //cout << Lambda_c2.size() << endl;
